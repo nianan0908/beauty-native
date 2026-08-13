@@ -415,9 +415,9 @@ function Workspace({ role }: { role: Role }) {
         : active === "我的"
           ? <CustomerProfile onNavigate={setActive} onSwitchRole={leaveWorkspace} />
           : <CustomerMarketplace selectedStore={selectedMarketplaceStore} onSelectStore={setSelectedMarketplaceStore} onBook={startBooking} onNavigate={setActive} />;
-    const showAdvisor = active !== "预约" && active !== "消息" && active !== "售后";
     const activeCustomerTab = active === "消息" ? "首页" : active === "售后" ? "我的" : active;
-    return <>{customerContent}{showAdvisor && <AiAdvisor onBook={startBooking} />}<nav className="mobile-tabbar" aria-label="顾客端主导航">{menus.customer.map(({ label, icon: Icon }) => <button className={activeCustomerTab === label ? "active" : ""} key={label} onClick={() => { setSelectedMarketplaceStore(null); setSelectedBookingOffer(null); setActive(label); }}><Icon size={20} /><span>{label}</span></button>)}</nav></>;
+    const customerTabs = menus.customer.map(({ label, icon: Icon }) => <button className={`customer-tab-button ${activeCustomerTab === label ? "active" : ""}`} key={label} onClick={() => { setSelectedMarketplaceStore(null); setSelectedBookingOffer(null); setActive(label); }}><Icon size={20} /><span>{label}</span></button>);
+    return <>{customerContent}<nav className="mobile-tabbar" aria-label="顾客端主导航">{customerTabs.slice(0, 2)}<AiAdvisor navigationItem onBook={startBooking} />{customerTabs.slice(2)}</nav></>;
   }
 
   return (

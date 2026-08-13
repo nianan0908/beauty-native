@@ -15,7 +15,7 @@ interface AdvisorMessage {
 }
 
 const quickQuestions = ["最近皮肤干燥暗沉", "毛孔黑头比较明显", "久坐肩颈很疲劳", "手部干燥有倒刺"];
-export function AiAdvisor({ onBook }: { onBook: (store: MarketplaceStore, offer?: BookingOffer) => void }) {
+export function AiAdvisor({ onBook, navigationItem = false }: { onBook: (store: MarketplaceStore, offer?: BookingOffer) => void; navigationItem?: boolean }) {
   const currentStoreId = useCustomerContext((state) => state.storeId);
   const coupons = useCustomerMarketing((state) => state.coupons);
   const claimedCouponIds = useCustomerMarketing((state) => state.claimedCouponIds);
@@ -59,7 +59,7 @@ export function AiAdvisor({ onBook }: { onBook: (store: MarketplaceStore, offer?
   };
 
   return <>
-    {!open && <button className="ai-advisor-trigger" onClick={() => setOpen(true)} aria-label="打开 AI 护理顾问" title="AI 护理顾问"><BotMessageSquare size={16} /></button>}
+    <button className={navigationItem ? `ai-advisor-tab ${open ? "active" : ""}` : "ai-advisor-trigger"} onClick={() => setOpen(true)} aria-label="打开 AI 护理顾问" aria-expanded={open} title="AI 护理顾问"><i><BotMessageSquare size={navigationItem ? 21 : 16} /></i>{navigationItem && <span>AI 顾问</span>}</button>
     {open && <><button className="ai-advisor-scrim" onClick={() => setOpen(false)} aria-label="关闭 AI 护理顾问" /><aside className="ai-advisor-sheet">
       <header className="ai-advisor-head"><span><Bot size={20} /></span><div><strong>栖光 AI 护理顾问</strong><small><i />在线为你推荐</small></div><button onClick={() => setOpen(false)} aria-label="关闭"><X size={19} /></button></header>
       <div className="ai-advisor-context"><MapPin size={14} /><span>优先推荐 {brandStores.find((store) => store.id === currentStoreId)?.name}</span><em>可切换同品牌门店</em></div>
