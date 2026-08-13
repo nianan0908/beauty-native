@@ -28,10 +28,10 @@ export const appointments: Appointment[] = [
 ];
 
 export const services: ServiceItem[] = [
-  { id: "S001", merchantId: "T001", storeIds: ["MS001", "MS006"], isOnline: true, bookingEnabled: true, category: "面部护理", name: "水光焕肤护理", duration: 60, price: 298, tone: "service-green" },
-  { id: "S002", merchantId: "T001", storeIds: ["MS001"], isOnline: true, bookingEnabled: true, category: "身体舒缓", name: "肩颈舒缓 SPA", duration: 75, price: 368, tone: "service-coral" },
-  { id: "S003", merchantId: "T001", storeIds: ["MS006"], isOnline: true, bookingEnabled: true, category: "手部护理", name: "轻奢手部护理", duration: 45, price: 168, tone: "service-blue" },
-  { id: "S004", merchantId: "T001", storeIds: ["MS001", "MS006"], isOnline: true, bookingEnabled: true, category: "面部护理", name: "深层清洁护理", duration: 60, price: 258, tone: "service-gold" },
+  { id: "S001", merchantId: "T001", storeIds: ["MS001", "MS006"], isOnline: true, bookingEnabled: true, category: "面部护理", name: "水光焕肤护理", duration: 60, price: 298, tone: "service-green", consumables: [{ consumableId: "M001", quantity: 1 }, { consumableId: "M002", quantity: 10 }, { consumableId: "M003", quantity: 4 }, { consumableId: "M006", quantity: 1 }] },
+  { id: "S002", merchantId: "T001", storeIds: ["MS001"], isOnline: true, bookingEnabled: true, category: "身体舒缓", name: "肩颈舒缓 SPA", duration: 75, price: 368, tone: "service-coral", consumables: [{ consumableId: "M004", quantity: 25 }, { consumableId: "M003", quantity: 2 }, { consumableId: "M006", quantity: 1 }] },
+  { id: "S003", merchantId: "T001", storeIds: ["MS006"], isOnline: true, bookingEnabled: true, category: "手部护理", name: "轻奢手部护理", duration: 45, price: 168, tone: "service-blue", consumables: [{ consumableId: "M007", quantity: 1 }, { consumableId: "M006", quantity: 1 }] },
+  { id: "S004", merchantId: "T001", storeIds: ["MS001", "MS006"], isOnline: true, bookingEnabled: true, category: "面部护理", name: "深层清洁护理", duration: 60, price: 258, tone: "service-gold", consumables: [{ consumableId: "M005", quantity: 20 }, { consumableId: "M003", quantity: 6 }, { consumableId: "M006", quantity: 1 }] },
   { id: "S005", merchantId: "T003", storeIds: ["MS003"], isOnline: true, bookingEnabled: true, category: "皮肤管理", name: "敏感肌修护管理", duration: 70, price: 328, tone: "service-blue" },
   { id: "S006", merchantId: "T005", storeIds: ["MS005"], isOnline: true, bookingEnabled: true, category: "美甲美睫", name: "日式裸透美甲", duration: 90, price: 228, tone: "service-coral" },
   { id: "S007", merchantId: "T005", storeIds: ["MS005"], isOnline: true, bookingEnabled: true, category: "美甲美睫", name: "自然款睫毛嫁接", duration: 100, price: 298, tone: "service-gold" },

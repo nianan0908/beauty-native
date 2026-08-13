@@ -49,6 +49,53 @@ export interface ServiceItem {
   duration: number;
   price: number;
   tone: string;
+  consumables?: ServiceConsumableUsage[];
+}
+
+export interface ServiceConsumableUsage {
+  consumableId: string;
+  quantity: number;
+}
+
+export interface ConsumableItem {
+  id: string;
+  merchantId: string;
+  name: string;
+  category: string;
+  unit: string;
+  unitCost: number;
+  enabled: boolean;
+}
+
+export interface ConsumableStock {
+  id: string;
+  consumableId: string;
+  storeId: string;
+  quantity: number;
+  safetyStock: number;
+}
+
+export type ConsumableTransactionType = "入库" | "标准消耗" | "额外领用" | "退回" | "报损" | "盘点调整";
+export type ConsumableTransactionStatus = "待审批" | "已通过" | "已驳回";
+
+export interface ConsumableTransaction {
+  id: string;
+  merchantId: string;
+  storeId: string;
+  consumableId: string;
+  type: ConsumableTransactionType;
+  quantity: number;
+  change: number;
+  status: ConsumableTransactionStatus;
+  employeeId?: string;
+  employeeName?: string;
+  serviceId?: string;
+  appointmentId?: string;
+  reason?: string;
+  operator: string;
+  approver?: string;
+  createdAt: string;
+  approvedAt?: string;
 }
 
 export interface MarketingActivity {
@@ -173,6 +220,10 @@ export interface CardTransaction {
   change: number;
   balance: number;
   orderId?: string;
+  appointmentId?: string;
+  employeeId?: string;
+  employeeName?: string;
+  source?: "收银台" | "员工核销" | "售后" | "系统";
   note: string;
   createdAt: string;
 }

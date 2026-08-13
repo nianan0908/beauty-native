@@ -22,6 +22,7 @@ import {
   LogOut,
   Menu,
   PackageCheck,
+  PackageOpen,
   Phone,
   Search,
   Settings,
@@ -39,12 +40,13 @@ import { demoUsers, roleLabels } from "./data";
 import { AppointmentCenter, CustomerBooking } from "./appointment-views";
 import { AiAdvisor } from "./ai-advisor";
 import { CustomerMarketplace } from "./customer-marketplace";
-import { CardCenter, CustomerAssets, CustomerCenter, CustomerNotifications, CustomerProfile, OrderCenter } from "./commerce-views";
+import { CardCenter, CustomerAssets, CustomerCenter, CustomerNotifications, CustomerProfile, EmployeeCardRedemption, OrderCenter } from "./commerce-views";
 import { BusinessReport, PlanManagement, PlatformLogs, PlatformOverview, SystemAnnouncements, TenantManagement } from "./report-platform-views";
 import { DemoSettings, StaffManagement, StoreManagement } from "./operations-views";
 import { MarketingManagement, PrivateStoreCenter, ServiceManagement } from "./merchant-management-views";
 import { AfterSaleCenter, CustomerAfterSales } from "./after-sale-views";
-import { useAppointments, useCommerce, useCustomerContext, useMerchantScope, useOperations, useSession } from "./store";
+import { InventoryManagement } from "./inventory-views";
+import { useAppointments, useCommerce, useCustomerContext, useInventory, useMerchantScope, useOperations, useSession } from "./store";
 import { DEMO_CONTEXT, DEMO_TODAY } from "./demo-context";
 import { getTodayVisitEntries } from "./dashboard-metrics";
 import type { Appointment, AppointmentStatus, BookingOffer, DemoUser, MarketplaceStore, Role } from "./types";
@@ -59,6 +61,7 @@ const menus: Record<Role, Array<{ label: string; icon: IconType }>> = {
     { label: "售后管理", icon: RotateCcw },
     { label: "会员管理", icon: Users },
     { label: "服务与次卡", icon: WalletCards },
+    { label: "耗材管理", icon: PackageOpen },
     { label: "营销活动", icon: Megaphone },
     { label: "员工管理", icon: CircleUserRound },
     { label: "门店管理", icon: Store },
@@ -72,6 +75,7 @@ const menus: Record<Role, Array<{ label: string; icon: IconType }>> = {
     { label: "售后管理", icon: RotateCcw },
     { label: "会员管理", icon: Users },
     { label: "员工排班", icon: Clock3 },
+    { label: "耗材管理", icon: PackageOpen },
     { label: "本店报表", icon: BarChart3 },
   ],
   receptionist: [
@@ -84,6 +88,7 @@ const menus: Record<Role, Array<{ label: string; icon: IconType }>> = {
   employee: [
     { label: "今日工作", icon: LayoutDashboard },
     { label: "我的日程", icon: CalendarDays },
+    { label: "次卡核销", icon: WalletCards },
     { label: "我的顾客", icon: HeartHandshake },
     { label: "个人业绩", icon: BarChart3 },
   ],
@@ -114,12 +119,13 @@ function Brand({ compact = false, onClick }: { compact?: boolean; onClick?: () =
 }
 
 function Login() {
-  const setRole = useSession((state) => state.setRole);
+  const authenticate = useSession((state) => state.login);
   const [, setSearchParams] = useSearchParams();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const fillAccount = (user: DemoUser) => {
     setUsername(user.username);
@@ -127,15 +133,18 @@ function Login() {
     setError("");
   };
 
-  const login = (event: FormEvent<HTMLFormElement>) => {
+  const login = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const account = demoUsers.find((user) => user.username === username.trim().toLowerCase() && user.password === password);
-    if (!account) {
-      setError("账号或密码不正确，请检查后重试。");
-      return;
+    setSubmitting(true);
+    setError("");
+    try {
+      const user = await authenticate(username, password);
+      setSearchParams({ role: user.role, page: menus[user.role][0].label });
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "登录失败，请稍后重试。");
+    } finally {
+      setSubmitting(false);
     }
-    setRole(account.role);
-    setSearchParams({ role: account.role, page: menus[account.role][0].label });
   };
 
   return (
@@ -167,14 +176,14 @@ function Login() {
             <label><span>登录账号</span><div className="login-input"><CircleUserRound size={18} /><input value={username} autoComplete="username" onChange={(event) => { setUsername(event.target.value); setError(""); }} placeholder="请输入账号" /></div></label>
             <label><span>登录密码</span><div className="login-input"><LockKeyhole size={18} /><input value={password} type={showPassword ? "text" : "password"} autoComplete="current-password" onChange={(event) => { setPassword(event.target.value); setError(""); }} placeholder="请输入密码" /><button type="button" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? "隐藏密码" : "显示密码"}>{showPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button></div></label>
             {error && <p className="login-error">{error}</p>}
-            <button className="primary-button" type="submit">登录 <ArrowRight size={17} /></button>
+            <button className="primary-button" type="submit" disabled={submitting}>{submitting ? "登录中…" : "登录"} {!submitting && <ArrowRight size={17} />}</button>
           </form>
 
           <section className="demo-accounts">
             <div><strong>体验不同角色</strong><span>密码均为 demo123</span></div>
             <div className="demo-account-grid">{demoUsers.map((user) => <button type="button" className={username === user.username ? "selected" : ""} key={user.role} onClick={() => fillAccount(user)}><span className={`avatar avatar-${user.role}`}>{user.name.slice(0, 1)}</span><span><strong>{user.title}</strong><small>{user.username}</small></span><Check size={15} /></button>)}</div>
           </section>
-          <p className="login-note"><LockKeyhole size={12} />本地演示数据，不会提交个人信息</p>
+          <p className="login-note"><LockKeyhole size={12} />账号通过服务端安全验证，登录状态不会写入本地存储</p>
         </div>
       </section>
     </main>
@@ -240,6 +249,7 @@ function MerchantDashboard({ role, onNavigate }: { role: Role; onNavigate: (page
   const customers = useCommerce((state) => state.customers);
   const createOrderFromAppointment = useCommerce((state) => state.createOrderFromAppointment);
   const stores = useOperations((state) => state.stores);
+  const inventoryStocks = useInventory((state) => state.stocks);
   const selectedStoreId = useMerchantScope((state) => state.selectedStoreId);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
   const [visitDrawerOpen, setVisitDrawerOpen] = useState(false);
@@ -267,6 +277,7 @@ function MerchantDashboard({ role, onNavigate }: { role: Role; onNavigate: (page
   const availableTransitions = selectedAppointment
     ? (dashboardAppointmentTransitions[selectedAppointment.status] ?? []).filter((status) => !isReceptionist || ["已确认", "已到店", "未到店", "已取消"].includes(status))
     : [];
+  const lowInventoryCount = inventoryStocks.filter((stock) => (!scopedStoreId || stock.storeId === scopedStoreId) && stock.quantity <= stock.safetyStock).length;
   const advanceAppointment = (status: AppointmentStatus) => {
     if (!selectedAppointment) return;
     const updated = updateAppointmentStatus(selectedAppointment.id, status);
@@ -308,6 +319,7 @@ function MerchantDashboard({ role, onNavigate }: { role: Role; onNavigate: (page
             <div className="panel-head"><div><h2>待处理</h2><p>需要你关注的事项</p></div></div>
             <button onClick={() => onNavigate(appointmentPage)}><span className="attention-icon warm"><CalendarDays size={17} /></span><span><strong>{pendingCount} 个预约待确认</strong><small>请及时联系顾客确认</small></span><ArrowRight size={16} /></button>
             <button onClick={() => onNavigate(cardPage)}><span className="attention-icon blue"><CreditCard size={17} /></span><span><strong>5 张次卡即将到期</strong><small>未来 7 天内到期</small></span><ArrowRight size={16} /></button>
+            {["owner", "manager"].includes(role) && <button onClick={() => onNavigate("耗材管理")}><span className="attention-icon warm"><PackageOpen size={17} /></span><span><strong>{lowInventoryCount} 项耗材需要补货</strong><small>已达到或低于安全库存</small></span><ArrowRight size={16} /></button>}
           </article>
         </aside>
       </section>
@@ -370,6 +382,7 @@ function PlatformDashboard() {
 
 function Workspace({ role }: { role: Role }) {
   const logout = useSession((state) => state.logout);
+  const sessionUser = useSession((state) => state.user);
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedPage = searchParams.get("page");
   const privateShop = searchParams.get("shop");
@@ -377,7 +390,7 @@ function Workspace({ role }: { role: Role }) {
   const active = requestedPage && validPages.includes(requestedPage) ? requestedPage : menus[role][0].label;
   const setActive = (page: string) => setSearchParams(privateShop ? { role: "customer", page, shop: privateShop } : { role, page });
   const leaveWorkspace = () => {
-    logout();
+    void logout();
     setSearchParams({});
   };
   const [mobileMenu, setMobileMenu] = useState(false);
@@ -389,7 +402,17 @@ function Workspace({ role }: { role: Role }) {
   const [selectedMarketplaceStore, setSelectedMarketplaceStore] = useState<MarketplaceStore | null>(null);
   const [selectedBookingOffer, setSelectedBookingOffer] = useState<BookingOffer | null>(null);
   const setCustomerStoreId = useCustomerContext((state) => state.setStoreId);
-  const user = useMemo(() => demoUsers.find((item) => item.role === role)!, [role]);
+  const user = useMemo(() => {
+    const demoUser = demoUsers.find((item) => item.role === role)!;
+    if (!sessionUser || sessionUser.role !== role) return demoUser;
+    return {
+      ...demoUser,
+      name: sessionUser.displayName,
+      entityId: sessionUser.entityId ?? demoUser.entityId,
+      merchantId: sessionUser.tenantId ?? demoUser.merchantId,
+      storeId: sessionUser.storeIds[0] ?? demoUser.storeId,
+    };
+  }, [role, sessionUser]);
   const stores = useOperations((state) => state.stores);
   const selectedStoreId = useMerchantScope((state) => state.selectedStoreId);
   const setSelectedStoreId = useMerchantScope((state) => state.setSelectedStoreId);
@@ -445,8 +468,12 @@ function Workspace({ role }: { role: Role }) {
                     ? <OrderCenter cashier />
                     : active === "收银核销"
                       ? <OrderCenter cashier title="收银核销" autoOpenComposer={false} />
+                    : active === "次卡核销"
+                      ? <EmployeeCardRedemption />
                     : ["售后管理", "售后处理"].includes(active)
                       ? <AfterSaleCenter role={role} />
+                    : active === "耗材管理"
+                      ? <InventoryManagement role={role} />
                     : active === "服务与次卡"
                       ? <ServiceManagement />
                       : active === "营销活动"
@@ -486,6 +513,18 @@ function EmptyModule({ title }: { title: string }) {
 
 export default function App() {
   const role = useSession((state) => state.role);
+  const status = useSession((state) => state.status);
+  const restore = useSession((state) => state.restore);
   const [searchParams] = useSearchParams();
-  return searchParams.get("shop") ? <Workspace role="customer" /> : role ? <Workspace role={role} /> : <Login />;
+  const privateShop = searchParams.get("shop");
+
+  useEffect(() => {
+    if (!privateShop) void restore();
+  }, [privateShop, restore]);
+
+  if (privateShop) return <Workspace role="customer" />;
+  if (status === "idle" || status === "loading") {
+    return <main className="session-loading"><Brand /><span>正在恢复登录状态…</span></main>;
+  }
+  return role ? <Workspace role={role} /> : <Login />;
 }

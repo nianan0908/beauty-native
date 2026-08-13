@@ -31,7 +31,7 @@ import {
   WalletCards,
   X,
 } from "lucide-react";
-import { DEMO_CONTEXT } from "./demo-context";
+import { DEMO_CONTEXT, DEMO_TODAY } from "./demo-context";
 import { useAppointments, useCommerce, useCustomerMarketing, useMerchantScope, useOperations } from "./store";
 import { couponValueText } from "./marketing-utils";
 import type { Customer, Order, PaymentMethod } from "./types";
@@ -99,7 +99,7 @@ export function OrderCenter({ cashier = false, title, autoOpenComposer = cashier
   const [query, setQuery] = useState("");
   const [customerId, setCustomerId] = useState(customers[0]?.id ?? "");
   const [serviceId, setServiceId] = useState(services[0]?.id ?? "");
-  const [employee, setEmployee] = useState(serviceEmployees[0]?.name ?? "");
+  const [employeeId, setEmployeeId] = useState(serviceEmployees[0]?.id ?? "");
   const [discount, setDiscount] = useState(() => orders.find((order) => order.status === "待结算")?.discount ?? 0);
   const [payment, setPayment] = useState<PaymentMethod>("微信");
   const [cardId, setCardId] = useState("");
@@ -126,8 +126,9 @@ export function OrderCenter({ cashier = false, title, autoOpenComposer = cashier
     const customer = customers.find((item) => item.id === customerId);
     const service = services.find((item) => item.id === serviceId);
     const store = stores.find((item) => item.id === selectedStoreId) ?? stores[0];
+    const employee = serviceEmployees.find((item) => item.id === employeeId);
     if (!customer || !service || !store || !employee) return;
-    const order = createWalkInOrder({ customerId, customer: customer.name, service: service.name, serviceId: service.id, employee, store: store.name, storeId: store.id, amount: service.price });
+    const order = createWalkInOrder({ customerId, customer: customer.name, service: service.name, serviceId: service.id, employee: employee.name, employeeId: employee.id, store: store.name, storeId: store.id, amount: service.price });
     openOrder(order);
     setComposer(false);
   };
@@ -147,9 +148,54 @@ export function OrderCenter({ cashier = false, title, autoOpenComposer = cashier
     </article>
 
     {(composer || selected) && <div className="commerce-scrim" onClick={() => { setComposer(false); setSelectedId(null); }} />}
-    {composer && <aside className="commerce-drawer"><div className="drawer-head"><div><span>WALK-IN ORDER</span><h2>新建到店订单</h2></div><button onClick={() => setComposer(false)}><X size={19} /></button></div><div className="drawer-form"><label><span>选择会员</span><select value={customerId} onChange={(event) => setCustomerId(event.target.value)}>{customers.map((customer) => <option value={customer.id} key={customer.id}>{customer.name} · {customer.phone}</option>)}</select></label><label><span>服务项目</span><select value={serviceId} onChange={(event) => setServiceId(event.target.value)}>{services.map((service) => <option value={service.id} key={service.id}>{service.name} · ¥{service.price}</option>)}</select></label><label><span>服务员工</span><select value={employee} onChange={(event) => setEmployee(event.target.value)}>{serviceEmployees.map((item) => <option value={item.name} key={item.id}>{item.name} · {item.title}</option>)}</select></label></div><div className="drawer-summary"><span>订单金额</span><strong>{currency(services.find((item) => item.id === serviceId)?.price ?? 0)}</strong></div><button className="drawer-primary" disabled={!customerId || !serviceId || !employee} onClick={addOrder}>创建并去结算 <ArrowRight size={17} /></button></aside>}
+    {composer && <aside className="commerce-drawer"><div className="drawer-head"><div><span>WALK-IN ORDER</span><h2>新建到店订单</h2></div><button onClick={() => setComposer(false)}><X size={19} /></button></div><div className="drawer-form"><label><span>选择会员</span><select value={customerId} onChange={(event) => setCustomerId(event.target.value)}>{customers.map((customer) => <option value={customer.id} key={customer.id}>{customer.name} · {customer.phone}</option>)}</select></label><label><span>服务项目</span><select value={serviceId} onChange={(event) => setServiceId(event.target.value)}>{services.map((service) => <option value={service.id} key={service.id}>{service.name} · ¥{service.price}</option>)}</select></label><label><span>服务员工</span><select value={employeeId} onChange={(event) => setEmployeeId(event.target.value)}>{serviceEmployees.map((item) => <option value={item.id} key={item.id}>{item.name} · {item.title}</option>)}</select></label></div><div className="drawer-summary"><span>订单金额</span><strong>{currency(services.find((item) => item.id === serviceId)?.price ?? 0)}</strong></div><button className="drawer-primary" disabled={!customerId || !serviceId || !employeeId} onClick={addOrder}>创建并去结算 <ArrowRight size={17} /></button></aside>}
 
     {selected && !composer && <aside className="commerce-drawer"><div className="drawer-head"><div><span>ORDER {selected.id}</span><h2>{selected.status === "待结算" ? "订单结算" : "订单详情"}</h2></div><button onClick={() => setSelectedId(null)}><X size={19} /></button></div><div className="settle-customer"><span>{selected.customer.slice(0, 1)}</span><div><strong>{selected.customer}</strong><small>{selected.service} · {selected.employee}</small></div></div><dl className="settle-lines"><div><dt>项目原价</dt><dd>{currency(selected.amount)}</dd></div><div><dt>优惠金额</dt><dd>{currency(selected.discount)}</dd></div><div><dt>应收金额</dt><dd>{currency(selected.payable)}</dd></div></dl>{selected.status === "待结算" ? <><label className="discount-input"><span>本单优惠</span><input type="number" min="0" max={selected.amount} value={discount} onChange={(event) => setDiscount(Number(event.target.value))} /></label><div className="payment-options">{(["微信", "支付宝", "现金", "次卡"] as PaymentMethod[]).map((method) => <button className={payment === method ? "selected" : ""} key={method} onClick={() => { setPayment(method); if (method === "次卡") setCardId(matchingCards[0]?.id ?? ""); }}><span>{method === "次卡" ? <WalletCards size={20} /> : method === "现金" ? <Banknote size={20} /> : <CreditCard size={20} />}</span>{method}{payment === method && <i><Check size={12} /></i>}</button>)}</div>{payment === "次卡" && <div className="matching-card-list">{matchingCards.length ? matchingCards.map((card) => <button className={cardId === card.id ? "selected" : ""} key={card.id} onClick={() => setCardId(card.id)}><span><strong>{card.name}</strong><small>有效期至 {card.expiresAt}</small></span><b>剩 {card.remainingTimes} 次</b></button>) : <div className="no-matching-card">该会员没有可用于当前项目的次卡</div>}</div>}<div className="payable-total"><span>本次应收</span><strong>{payment === "次卡" ? "核销 1 次" : currency(Math.max(0, selected.amount - discount))}</strong></div><button className="drawer-primary" disabled={payment === "次卡" && !cardId} onClick={settle}><BadgeCheck size={17} /> 确认完成结算</button></> : <div className="settled-result"><BadgeCheck size={25} /><strong>订单已完成</strong><span>{selected.paymentMethod} · 实收 {currency(selected.payable)}</span></div>}</aside>}
+  </>;
+}
+
+export function EmployeeCardRedemption() {
+  const customers = useCommerce((state) => state.customers);
+  const orders = useCommerce((state) => state.orders);
+  const cards = useCommerce((state) => state.customerCards);
+  const transactions = useCommerce((state) => state.cardTransactions);
+  const redeemCardByEmployee = useCommerce((state) => state.redeemCardByEmployee);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [selectedCardId, setSelectedCardId] = useState("");
+  const [success, setSuccess] = useState<string | null>(null);
+  const employeeId = DEMO_CONTEXT.employeeId;
+  const pendingOrders = orders.filter((order) => order.employeeId === employeeId && order.status === "待结算");
+  const selectedOrder = pendingOrders.find((order) => order.id === selectedOrderId) ?? null;
+  const availableCards = (order: Order | null) => cards.filter((card) => card.customerId === order?.customerId && card.service === order?.service && card.remainingTimes > 0 && card.status === "使用中" && card.expiresAt >= DEMO_TODAY);
+  const matchingCards = availableCards(selectedOrder);
+  const employeeTransactions = transactions.filter((transaction) => transaction.type === "核销" && (transaction.employeeId === employeeId || (!transaction.employeeId && orders.find((order) => order.id === transaction.orderId)?.employeeId === employeeId)));
+  const redeemableCount = pendingOrders.filter((order) => availableCards(order).length > 0).length;
+
+  const openRedemption = (order: Order) => {
+    const matching = availableCards(order);
+    setSuccess(null);
+    setSelectedOrderId(order.id);
+    setSelectedCardId(matching[0]?.id ?? "");
+  };
+
+  const redeem = () => {
+    if (!selectedOrder || !selectedCardId) return;
+    const card = matchingCards.find((item) => item.id === selectedCardId);
+    if (!card || !redeemCardByEmployee(selectedOrder.id, employeeId, card.id)) return;
+    setSuccess(`${selectedOrder.customer} · ${selectedOrder.service}，卡内剩余 ${card.remainingTimes - 1} 次`);
+    setSelectedOrderId(null);
+    setSelectedCardId("");
+  };
+
+  return <>
+    <div className="page-heading"><div><span className="date-line">CARD REDEMPTION</span><h1>次卡核销</h1><p>核销本人已完成服务对应的会员次卡。</p></div></div>
+    {success && <section className="redemption-success"><BadgeCheck size={19} /><div><strong>核销成功</strong><span>{success}</span></div><button aria-label="关闭提示" onClick={() => setSuccess(null)}><X size={16} /></button></section>}
+    <section className="redemption-metrics"><article><span><WalletCards size={18} /></span><div><strong>{redeemableCount}</strong><small>当前可核销</small></div></article><article><span><History size={18} /></span><div><strong>{employeeTransactions.length}</strong><small>累计核销记录</small></div></article></section>
+    <section className="redemption-layout">
+      <article className="panel redemption-panel"><div className="panel-head"><div><h2>待核销服务</h2><p>仅展示由你服务的待结算订单</p></div></div>{pendingOrders.length ? <div className="redemption-order-list">{pendingOrders.map((order) => { const customer = customers.find((item) => item.id === order.customerId); const matching = availableCards(order); return <article key={order.id}><span className="redemption-avatar">{order.customer.slice(0, 1)}</span><div><strong>{order.customer} · {order.service}</strong><small>{customer?.phone ?? "-"} · {order.createdAt}</small></div><span className={matching.length ? "redemption-ready" : "redemption-unavailable"}>{matching.length ? `可用 ${matching.reduce((sum, card) => sum + card.remainingTimes, 0)} 次` : "无匹配次卡"}</span><button disabled={!matching.length} onClick={() => openRedemption(order)}>核销</button></article>; })}</div> : <div className="redemption-empty"><BadgeCheck size={28} /><strong>当前没有待核销服务</strong><span>完成服务并生成订单后，会显示在这里。</span></div>}</article>
+      <article className="panel redemption-history"><div className="panel-head"><div><h2>我的核销记录</h2><p>按核销时间倒序展示</p></div></div>{employeeTransactions.length ? employeeTransactions.map((transaction) => { const order = orders.find((item) => item.id === transaction.orderId); const customer = customers.find((item) => item.id === transaction.customerId); return <div key={transaction.id}><span><History size={16} /></span><div><strong>{customer?.name ?? order?.customer ?? "会员"} · {transaction.note}</strong><small>{transaction.createdAt} · {transaction.source ?? "门店核销"}</small></div><b>-1 次<small>余 {transaction.balance}</small></b></div>; }) : <div className="redemption-empty compact"><History size={24} /><strong>暂无核销记录</strong></div>}</article>
+    </section>
+    {selectedOrder && <><button className="commerce-scrim" aria-label="关闭核销确认" onClick={() => setSelectedOrderId(null)} /><aside className="commerce-drawer"><div className="drawer-head"><div><span>ORDER {selectedOrder.id}</span><h2>确认次卡核销</h2></div><button aria-label="关闭" onClick={() => setSelectedOrderId(null)}><X size={19} /></button></div><div className="settle-customer"><span>{selectedOrder.customer.slice(0, 1)}</span><div><strong>{selectedOrder.customer}</strong><small>{selectedOrder.service} · 服务员工 {selectedOrder.employee}</small></div></div><dl className="settle-lines"><div><dt>服务时间</dt><dd>{selectedOrder.createdAt}</dd></div><div><dt>核销项目</dt><dd>{selectedOrder.service}</dd></div><div><dt>本次扣减</dt><dd>1 次</dd></div></dl><div className="matching-card-list">{matchingCards.map((card) => <button className={selectedCardId === card.id ? "selected" : ""} key={card.id} onClick={() => setSelectedCardId(card.id)}><span><strong>{card.name}</strong><small>有效期至 {card.expiresAt}</small></span><b>剩 {card.remainingTimes} 次</b>{selectedCardId === card.id && <Check size={15} />}</button>)}</div><div className="redemption-confirm-note"><ShieldCheck size={16} /><span>确认后将扣减会员 1 次卡项，并以你的身份记录本次服务核销。</span></div><button className="drawer-primary" disabled={!selectedCardId} onClick={redeem}><BadgeCheck size={17} /> 确认核销 1 次</button></aside></>}
   </>;
 }
 

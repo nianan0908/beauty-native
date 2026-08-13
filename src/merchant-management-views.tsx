@@ -19,7 +19,7 @@ import {
   X,
 } from "lucide-react";
 import { DEMO_CONTEXT } from "./demo-context";
-import { useMerchantScope, useOperations } from "./store";
+import { useInventory, useMerchantScope, useOperations } from "./store";
 import { CardCenter } from "./commerce-views";
 import type { MarketingActivity, ServiceItem } from "./types";
 
@@ -45,6 +45,7 @@ export function ServiceManagement() {
   const [tab, setTab] = useState<"服务项目" | "次卡管理">("服务项目");
   const services = useOperations((state) => state.services);
   const stores = useOperations((state) => state.stores);
+  const consumables = useInventory((state) => state.consumables);
   const saveService = useOperations((state) => state.saveService);
   const toggleServiceStatus = useOperations((state) => state.toggleServiceStatus);
   const [query, setQuery] = useState("");
@@ -84,6 +85,7 @@ export function ServiceManagement() {
         <label><span>服务分类</span><select value={draft.category} onChange={(event) => setDraft({ ...draft, category: event.target.value })}><option>面部护理</option><option>皮肤管理</option><option>身体舒缓</option><option>手部护理</option><option>美甲美睫</option></select></label>
         <div className="form-pair"><label><span>服务价格</span><input type="number" min="0" value={draft.price} onChange={(event) => setDraft({ ...draft, price: Number(event.target.value) })} /></label><label><span>服务时长（分钟）</span><input type="number" min="15" step="15" value={draft.duration} onChange={(event) => setDraft({ ...draft, duration: Number(event.target.value) })} /></label></div>
         <fieldset className="choice-field"><legend>适用门店</legend>{stores.map((store) => <label key={store.id}><input type="checkbox" checked={draft.storeIds?.includes(store.id)} onChange={() => setDraft({ ...draft, storeIds: draft.storeIds?.includes(store.id) ? draft.storeIds.filter((id) => id !== store.id) : [...(draft.storeIds ?? []), store.id] })} /><span>{store.name}</span></label>)}</fieldset>
+        <fieldset className="consumable-config"><legend>单次服务标准耗材</legend><p>服务完成时系统会按这里的用量自动出库。</p>{consumables.map((item) => { const usage = draft.consumables?.find((current) => current.consumableId === item.id); return <label key={item.id}><span><strong>{item.name}</strong><small>{item.category} · {item.unit}</small></span><input type="number" min="0" step="0.1" value={usage?.quantity ?? 0} onChange={(event) => { const quantity = Number(event.target.value); const rest = (draft.consumables ?? []).filter((current) => current.consumableId !== item.id); setDraft({ ...draft, consumables: quantity > 0 ? [...rest, { consumableId: item.id, quantity }] : rest }); }} /></label>; })}</fieldset>
         <fieldset className="choice-field"><legend>顾客端状态</legend><label><input type="checkbox" checked={draft.isOnline} onChange={(event) => setDraft({ ...draft, isOnline: event.target.checked })} /><span>上架展示</span></label><label><input type="checkbox" checked={draft.bookingEnabled} onChange={(event) => setDraft({ ...draft, bookingEnabled: event.target.checked })} /><span>允许预约</span></label></fieldset>
       </div>
       <button className="drawer-primary drawer-submit" disabled={!draft.name.trim() || !draft.storeIds?.length} onClick={submit}><Check size={17} /> 保存服务项目</button>

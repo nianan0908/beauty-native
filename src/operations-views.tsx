@@ -15,7 +15,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { useAfterSales, useAppointments, useCommerce, useMerchantScope, useOperations, usePlatform } from "./store";
+import { useAfterSales, useAppointments, useCommerce, useInventory, useMerchantScope, useOperations, usePlatform } from "./store";
 import { useCustomerContext, useCustomerMarketing } from "./store";
 import { addDays, DEMO_TODAY } from "./demo-context";
 import type { Role, StaffMember, StaffSchedule, StoreInfo } from "./types";
@@ -128,6 +128,7 @@ export function DemoSettings() {
   const resetMarketing = useCustomerMarketing((state) => state.resetMarketing);
   const resetAfterSales = useAfterSales((state) => state.resetAfterSales);
   const resetContext = useCustomerContext((state) => state.resetContext);
+  const resetInventory = useInventory((state) => state.resetInventory);
   const [done, setDone] = useState(false);
   const reset = () => {
     resetAppointments();
@@ -137,6 +138,7 @@ export function DemoSettings() {
     resetMarketing();
     resetAfterSales();
     resetContext();
+    resetInventory();
     setDone(true);
   };
   return <section className="settings-page"><div className="settings-heading"><span>DEMO ENVIRONMENT</span><h1>演示环境设置</h1><p>用于恢复演示数据和了解当前版本边界。</p></div><article className="settings-band"><div><Building2 size={22} /><span><strong>本地数据模式</strong><small>所有数据保存在当前浏览器，不会上传服务器。</small></span></div><i>已启用</i></article><article className="settings-section"><h2>数据管理</h2><p>重置后将恢复初始预约、会员、订单、次卡、商家和员工数据。</p><button onClick={reset}>{done ? <><Check size={16} />已恢复初始数据</> : "恢复演示数据"}</button></article><article className="settings-section version"><h2>版本信息</h2><dl><div><dt>产品版本</dt><dd>前端 MVP 0.5</dd></div><div><dt>数据存储</dt><dd>Zustand + localStorage</dd></div><div><dt>后端连接</dt><dd>未连接</dd></div></dl></article></section>;

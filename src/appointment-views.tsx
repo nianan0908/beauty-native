@@ -13,12 +13,13 @@ import {
   Sparkles,
   TicketPercent,
   Timer,
+  PackageOpen,
   UserRound,
   X,
 } from "lucide-react";
 import { bookingDates, bookingTimes, marketplaceStores } from "./data";
 import { DEMO_CONTEXT, DEMO_TODAY } from "./demo-context";
-import { useAppointments, useCommerce, useCustomerMarketing, useMerchantScope, useOperations } from "./store";
+import { useAppointments, useCommerce, useCustomerMarketing, useInventory, useMerchantScope, useOperations } from "./store";
 import { bestCoupon, couponDiscount, isCouponApplicable } from "./marketing-utils";
 import type { Appointment, AppointmentStatus, BookingOffer, MarketplaceStore, Role } from "./types";
 
@@ -60,9 +61,16 @@ export function AppointmentCenter({ role }: { role: Role }) {
   const stores = useOperations((state) => state.stores);
   const services = useOperations((state) => state.services);
   const staff = useOperations((state) => state.staff);
+  const consumables = useInventory((state) => state.consumables);
+  const submitInventoryRequest = useInventory((state) => state.submitRequest);
   const [selectedDate, setSelectedDate] = useState(DEMO_TODAY);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<AppointmentStatus | "全部">("全部");
+  const [requestOpen, setRequestOpen] = useState(false);
+  const [requestType, setRequestType] = useState<"额外领用" | "退回" | "报损">("额外领用");
+  const [requestConsumableId, setRequestConsumableId] = useState("");
+  const [requestQuantity, setRequestQuantity] = useState(1);
+  const [requestReason, setRequestReason] = useState("");
   const selectedStoreId = useMerchantScope((state) => state.selectedStoreId);
   const [composer, setComposer] = useState(false);
   const [formStoreId, setFormStoreId] = useState(selectedStoreId ?? stores[0]?.id ?? "");
@@ -161,6 +169,19 @@ export function AppointmentCenter({ role }: { role: Role }) {
     if (updated && status === "已完成") createOrderFromAppointment(updated);
     if (["已完成", "已取消", "未到店"].includes(status)) setSelectedId(null);
   };
+  const openConsumableRequest = () => {
+    if (!selected) return;
+    const standardItems = services.find((item) => item.id === selected.serviceId)?.consumables ?? [];
+    setRequestConsumableId(standardItems[0]?.consumableId ?? consumables[0]?.id ?? "");
+    setRequestQuantity(1);
+    setRequestReason("");
+    setRequestOpen(true);
+  };
+  const submitConsumableRequest = () => {
+    if (!selected?.storeId || !requestConsumableId) return;
+    const submitted = submitInventoryRequest({ storeId: selected.storeId, consumableId: requestConsumableId, type: requestType, quantity: requestQuantity, employeeId: selected.employeeId ?? DEMO_CONTEXT.employeeId, employeeName: selected.employee, serviceId: selected.serviceId, appointmentId: selected.id, reason: requestReason });
+    if (submitted) setRequestOpen(false);
+  };
 
   return (
     <>
@@ -209,6 +230,7 @@ export function AppointmentCenter({ role }: { role: Role }) {
             <div className="detail-time"><CalendarDays size={20} /><div><strong>{formatDate(selected.date)} · {selected.time}</strong><span>{selected.duration} 分钟 · {selected.store}</span></div></div>
             <div className="detail-section"><span>顾客信息</span><div className="customer-line"><i>{selected.customer.slice(0, 1)}</i><div><strong>{selected.customer}</strong><small>{selected.phone}</small></div><button title="联系顾客"><Phone size={17} /></button></div></div>
             <div className="detail-section"><span>服务信息</span><dl><div><dt>服务员工</dt><dd>{selected.employee}</dd></div><div><dt>项目金额</dt><dd>¥{selected.price}</dd></div><div><dt>顾客备注</dt><dd>{selected.note || "无"}</dd></div></dl></div>
+            {isEmployee && <div className="appointment-consumables"><div><span>本次标准耗材</span><button onClick={openConsumableRequest}><PackageOpen size={14} />耗材申请</button></div>{(services.find((item) => item.id === selected.serviceId)?.consumables ?? []).map((usage) => { const item = consumables.find((current) => current.id === usage.consumableId); return <p key={usage.consumableId}><span>{item?.name}</span><strong>{usage.quantity} {item?.unit}</strong></p>; })}</div>}
             {availableTransitions.length ? <div className="detail-actions">
               {availableTransitions.map((status, index) => (
                 <button className={index === 0 ? "main" : "secondary"} key={status} onClick={() => advance(status)}>{actionLabels[status]}</button>
@@ -217,6 +239,7 @@ export function AppointmentCenter({ role }: { role: Role }) {
           </> : <div className="detail-empty"><CalendarCheck size={32} /><strong>选择一条预约</strong><span>查看顾客、服务和状态操作</span></div>}
         </aside>
       </section>
+      {requestOpen && selected && <><button className="commerce-scrim" onClick={() => setRequestOpen(false)} aria-label="关闭耗材申请" /><aside className="commerce-drawer"><div className="drawer-head"><div><span>CONSUMABLE REQUEST</span><h2>提交耗材申请</h2><p>{selected.service} · {selected.id}</p></div><button onClick={() => setRequestOpen(false)}><X size={19} /></button></div><div className="drawer-form"><label><span>申请类型</span><select value={requestType} onChange={(event) => setRequestType(event.target.value as typeof requestType)}><option>额外领用</option><option>退回</option><option>报损</option></select></label><label><span>耗材</span><select value={requestConsumableId} onChange={(event) => setRequestConsumableId(event.target.value)}>{consumables.map((item) => <option value={item.id} key={item.id}>{item.name} · {item.unit}</option>)}</select></label><label><span>数量</span><input type="number" min="0.1" step="0.1" value={requestQuantity} onChange={(event) => setRequestQuantity(Number(event.target.value))} /></label><label><span>原因说明</span><textarea value={requestReason} maxLength={300} onChange={(event) => setRequestReason(event.target.value)} placeholder="请说明额外领用、退回或报损原因" /></label></div><p className="stock-tip">提交后由店长审批，通过后才会变更门店库存。</p><button className="drawer-primary drawer-submit" disabled={requestQuantity <= 0 || requestReason.trim().length < 2} onClick={submitConsumableRequest}><Check size={17} />提交店长审批</button></aside></>}
       {composer && <><button className="commerce-scrim" onClick={() => setComposer(false)} aria-label="关闭代客预约" /><aside className="commerce-drawer appointment-composer">
         <div className="drawer-head"><div><span>ASSISTED BOOKING</span><h2>代客预约</h2><p>录入电话、微信或到店咨询预约</p></div><button onClick={() => setComposer(false)}><X size={19} /></button></div>
         <div className="drawer-form">

@@ -1,0 +1,1 @@
+"""Consumable inventory domain."""

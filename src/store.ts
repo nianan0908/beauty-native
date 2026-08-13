@@ -1,30 +1,50 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { authApi, type AuthUser } from "./auth-api";
 import { afterSales as seedAfterSales, appointments as seedAppointments, cardProducts as seedCardProducts, cardTransactions as seedCardTransactions, customerCards as seedCustomerCards, customerMessages as seedCustomerMessages, customers as seedCustomers, employees, marketingActivities as seedMarketingActivities, marketplaceStores, orders as seedOrders, platformAuditLogs as seedPlatformAuditLogs, promotionCoupons, saasPlans as seedSaasPlans, services as seedServices, staffMembers as seedStaffMembers, staffSchedules as seedStaffSchedules, stores as seedStores, tenants as seedTenants } from "./data";
 import { canTransitionAppointment, validateAppointment, type AppointmentInput } from "./business-rules";
 import { approvedStatus, canTransitionAfterSale } from "./after-sale-rules";
 import { addDays, addMonths, DEMO_CONTEXT, DEMO_TODAY, demoTimestamp } from "./demo-context";
-import type { AfterSale, AfterSaleResolution, AfterSaleType, Appointment, AppointmentStatus, CardProduct, CardTransaction, Customer, CustomerCard, CustomerMessage, MarketingActivity, Order, PaymentMethod, PlatformAuditLog, PromotionCoupon, Role, SaaSPlan, ServiceItem, StaffMember, StaffSchedule, StoreInfo, Tenant, TenantStatus } from "./types";
+import { consumables as seedConsumables, consumableStocks as seedConsumableStocks, consumableTransactions as seedConsumableTransactions } from "./inventory-data";
+import { stockEffect } from "./inventory-rules";
+import type { AfterSale, AfterSaleResolution, AfterSaleType, Appointment, AppointmentStatus, CardProduct, CardTransaction, ConsumableItem, ConsumableStock, ConsumableTransaction, ConsumableTransactionType, Customer, CustomerCard, CustomerMessage, MarketingActivity, Order, PaymentMethod, PlatformAuditLog, PromotionCoupon, Role, SaaSPlan, ServiceItem, StaffMember, StaffSchedule, StoreInfo, Tenant, TenantStatus } from "./types";
 
 interface SessionState {
+  status: "idle" | "loading" | "anonymous" | "authenticated";
   role: Role | null;
-  setRole: (role: Role) => void;
-  logout: () => void;
+  user: AuthUser | null;
+  login: (username: string, password: string) => Promise<AuthUser>;
+  restore: () => Promise<void>;
+  logout: () => Promise<void>;
 }
 
-const storedRole = localStorage.getItem("qiguang-demo-role");
-const roleValues: Role[] = ["platform", "owner", "manager", "receptionist", "employee", "customer"];
-const savedRole = roleValues.includes(storedRole as Role) ? storedRole as Role : null;
-
-export const useSession = create<SessionState>((set) => ({
-  role: savedRole,
-  setRole: (role) => {
-    localStorage.setItem("qiguang-demo-role", role);
-    set({ role });
+export const useSession = create<SessionState>((set, get) => ({
+  status: "idle",
+  role: null,
+  user: null,
+  login: async (username, password) => {
+    try {
+      const user = await authApi.login(username, password);
+      set({ status: "authenticated", role: user.role, user });
+      return user;
+    } catch (error) {
+      set({ status: "anonymous", role: null, user: null });
+      throw error;
+    }
   },
-  logout: () => {
-    localStorage.removeItem("qiguang-demo-role");
-    set({ role: null });
+  restore: async () => {
+    if (get().status !== "idle") return;
+    set({ status: "loading" });
+    try {
+      const user = await authApi.refresh();
+      set({ status: "authenticated", role: user.role, user });
+    } catch {
+      set({ status: "anonymous", role: null, user: null });
+    }
+  },
+  logout: async () => {
+    set({ status: "anonymous", role: null, user: null });
+    await authApi.logout();
   },
 }));
 
@@ -154,6 +174,7 @@ export const useAppointments = create<AppointmentState>()(
           appointments: state.appointments.map((item) => item.id === id ? updated : item),
         }));
         if (updated.couponId && ["已取消", "未到店"].includes(status)) useCustomerMarketing.getState().releaseCoupon(updated.couponId, updated.id);
+        if (status === "已完成") useInventory.getState().consumeForAppointment(updated);
         if (updated.customerId === DEMO_CONTEXT.customerId) {
           const messageByStatus: Partial<Record<AppointmentStatus, Pick<CustomerMessage, "title" | "content">>> = {
             已确认: { title: "预约已确认", content: `${updated.store}已确认你在${updated.date} ${updated.time}的${updated.service}预约。` },
@@ -172,6 +193,86 @@ export const useAppointments = create<AppointmentState>()(
       resetAppointments: () => set({ appointments: seedAppointments }),
     }),
     { name: "qiguang-appointments-v3", version: 3 },
+  ),
+);
+
+interface InventoryState {
+  consumables: ConsumableItem[];
+  stocks: ConsumableStock[];
+  transactions: ConsumableTransaction[];
+  saveConsumable: (item: ConsumableItem) => void;
+  updateStockSettings: (storeId: string, consumableId: string, safetyStock: number) => void;
+  restock: (storeId: string, consumableId: string, quantity: number, operator: string) => boolean;
+  submitRequest: (input: { storeId: string; consumableId: string; type: Extract<ConsumableTransactionType, "额外领用" | "退回" | "报损">; quantity: number; employeeId: string; employeeName: string; serviceId?: string; appointmentId?: string; reason: string }) => boolean;
+  approveRequest: (id: string, approver: string) => boolean;
+  rejectRequest: (id: string, approver: string) => boolean;
+  consumeForAppointment: (appointment: Appointment) => void;
+  resetInventory: () => void;
+}
+
+function updateInventoryStock(stocks: ConsumableStock[], storeId: string, consumableId: string, change: number) {
+  const existing = stocks.find((item) => item.storeId === storeId && item.consumableId === consumableId);
+  if (!existing) return [...stocks, { id: `ST-${consumableId}-${storeId}`, storeId, consumableId, quantity: Math.max(0, change), safetyStock: 0 }];
+  return stocks.map((item) => item.id === existing.id ? { ...item, quantity: Math.max(0, item.quantity + change) } : item);
+}
+
+export const useInventory = create<InventoryState>()(
+  persist(
+    (set, get) => ({
+      consumables: seedConsumables,
+      stocks: seedConsumableStocks,
+      transactions: seedConsumableTransactions,
+      saveConsumable: (item) => set((state) => ({ consumables: state.consumables.some((current) => current.id === item.id) ? state.consumables.map((current) => current.id === item.id ? item : current) : [item, ...state.consumables] })),
+      updateStockSettings: (storeId, consumableId, safetyStock) => set((state) => {
+        const existing = state.stocks.find((item) => item.storeId === storeId && item.consumableId === consumableId);
+        if (existing) return { stocks: state.stocks.map((item) => item.id === existing.id ? { ...item, safetyStock: Math.max(0, safetyStock) } : item) };
+        return { stocks: [...state.stocks, { id: `ST-${consumableId}-${storeId}`, storeId, consumableId, quantity: 0, safetyStock: Math.max(0, safetyStock) }] };
+      }),
+      restock: (storeId, consumableId, quantity, operator) => {
+        if (quantity <= 0 || !get().consumables.some((item) => item.id === consumableId)) return false;
+        const transaction: ConsumableTransaction = { id: createId("MT"), merchantId: DEMO_CONTEXT.merchantId, storeId, consumableId, type: "入库", quantity, change: quantity, status: "已通过", operator, approver: operator, createdAt: demoTimestamp(), approvedAt: demoTimestamp() };
+        set((state) => ({ stocks: updateInventoryStock(state.stocks, storeId, consumableId, quantity), transactions: [transaction, ...state.transactions] }));
+        return true;
+      },
+      submitRequest: (input) => {
+        if (input.quantity <= 0 || !input.reason.trim()) return false;
+        const transaction: ConsumableTransaction = { ...input, id: createId("MT"), merchantId: DEMO_CONTEXT.merchantId, quantity: input.quantity, change: stockEffect(input.type, input.quantity), status: "待审批", reason: input.reason.trim(), operator: input.employeeName, createdAt: demoTimestamp() };
+        set((state) => ({ transactions: [transaction, ...state.transactions] }));
+        return true;
+      },
+      approveRequest: (id, approver) => {
+        const current = get().transactions.find((item) => item.id === id && item.status === "待审批");
+        if (!current) return false;
+        set((state) => ({
+          stocks: updateInventoryStock(state.stocks, current.storeId, current.consumableId, current.change),
+          transactions: state.transactions.map((item) => item.id === id ? { ...item, status: "已通过", approver, approvedAt: demoTimestamp() } : item),
+        }));
+        return true;
+      },
+      rejectRequest: (id, approver) => {
+        if (!get().transactions.some((item) => item.id === id && item.status === "待审批")) return false;
+        set((state) => ({ transactions: state.transactions.map((item) => item.id === id ? { ...item, status: "已驳回", approver, approvedAt: demoTimestamp() } : item) }));
+        return true;
+      },
+      consumeForAppointment: (appointment) => {
+        if (!appointment.storeId || !appointment.serviceId) return;
+        const service = useOperations.getState().services.find((item) => item.id === appointment.serviceId);
+        const usages = service?.consumables ?? [];
+        const existing = new Set(get().transactions.filter((item) => item.appointmentId === appointment.id && item.type === "标准消耗").map((item) => item.consumableId));
+        const pendingUsages = usages.filter((usage) => !existing.has(usage.consumableId));
+        if (!pendingUsages.length) return;
+        const createdAt = demoTimestamp();
+        set((state) => ({
+          stocks: pendingUsages.reduce((stocks, usage) => updateInventoryStock(stocks, appointment.storeId!, usage.consumableId, -usage.quantity), state.stocks),
+          transactions: [
+            ...pendingUsages.map((usage): ConsumableTransaction => ({ id: createId("MT"), merchantId: appointment.merchantId ?? DEMO_CONTEXT.merchantId, storeId: appointment.storeId!, consumableId: usage.consumableId, type: "标准消耗", quantity: usage.quantity, change: -usage.quantity, status: "已通过", employeeId: appointment.employeeId, employeeName: appointment.employee, serviceId: appointment.serviceId, appointmentId: appointment.id, operator: "系统", createdAt, approvedAt: createdAt })),
+            ...state.transactions,
+          ],
+        }));
+      },
+      resetInventory: () => set({ consumables: seedConsumables, stocks: seedConsumableStocks, transactions: seedConsumableTransactions }),
+    }),
+    { name: "qiguang-inventory-v1", version: 1 },
   ),
 );
 
@@ -215,8 +316,9 @@ interface CommerceState {
   cardTransactions: CardTransaction[];
   saveCustomer: (customer: Customer) => void;
   createOrderFromAppointment: (appointment: Appointment) => Order;
-  createWalkInOrder: (input: Pick<Order, "customerId" | "customer" | "service" | "employee" | "store" | "storeId" | "serviceId" | "amount">) => Order;
-  settleOrder: (orderId: string, method: PaymentMethod, discount?: number, customerCardId?: string) => boolean;
+  createWalkInOrder: (input: Pick<Order, "customerId" | "customer" | "service" | "employee" | "employeeId" | "store" | "storeId" | "serviceId" | "amount">) => Order;
+  settleOrder: (orderId: string, method: PaymentMethod, discount?: number, customerCardId?: string, context?: { source: "收银台" | "员工核销"; employeeId?: string }) => boolean;
+  redeemCardByEmployee: (orderId: string, employeeId: string, customerCardId: string) => boolean;
   sellCard: (customerId: string, productId: string) => CustomerCard | null;
   resetCommerce: () => void;
 }
@@ -264,7 +366,7 @@ export const useCommerce = create<CommerceState>()(
         set((state) => ({ orders: [order, ...state.orders] }));
         return order;
       },
-      settleOrder: (orderId, method, discount = 0, customerCardId) => {
+      settleOrder: (orderId, method, discount = 0, customerCardId, context = { source: "收银台" }) => {
         let settled = false;
         set((state) => {
           const order = state.orders.find((item) => item.id === orderId);
@@ -272,11 +374,25 @@ export const useCommerce = create<CommerceState>()(
           let customerCards = state.customerCards;
           let cardTransactions = state.cardTransactions;
           if (method === "次卡") {
-            const card = customerCards.find((item) => item.id === customerCardId && item.customerId === order.customerId && item.service === order.service && item.remainingTimes > 0 && item.status === "使用中");
+            const card = customerCards.find((item) => item.id === customerCardId && item.customerId === order.customerId && item.service === order.service && item.remainingTimes > 0 && item.status === "使用中" && item.expiresAt >= DEMO_TODAY);
             if (!card) return state;
             const balance = card.remainingTimes - 1;
             customerCards = customerCards.map((item) => item.id === card.id ? { ...item, remainingTimes: balance, status: balance === 0 ? "已用完" : "使用中" } : item);
-            cardTransactions = [{ id: createId("CT"), cardId: card.id, customerId: order.customerId, type: "核销", change: -1, balance, orderId, note: order.service, createdAt: demoTimestamp() }, ...cardTransactions];
+            cardTransactions = [{
+              id: createId("CT"),
+              cardId: card.id,
+              customerId: order.customerId,
+              type: "核销",
+              change: -1,
+              balance,
+              orderId,
+              appointmentId: order.appointmentId,
+              employeeId: context.employeeId ?? order.employeeId,
+              employeeName: order.employee,
+              source: context.source,
+              note: order.service,
+              createdAt: demoTimestamp(),
+            }, ...cardTransactions];
           }
           const payable = method === "次卡" ? 0 : Math.max(0, order.amount - discount);
           const orders = state.orders.map((item) => item.id === orderId ? { ...item, discount, payable, paymentMethod: method, customerCardId, status: "已完成" as const, completedAt: demoTimestamp() } : item);
@@ -287,6 +403,11 @@ export const useCommerce = create<CommerceState>()(
         const order = get().orders.find((item) => item.id === orderId);
         if (settled && order?.couponId) useCustomerMarketing.getState().redeemCoupon(order.couponId, order.appointmentId);
         return settled;
+      },
+      redeemCardByEmployee: (orderId, employeeId, customerCardId) => {
+        const order = get().orders.find((item) => item.id === orderId);
+        if (!order || order.status !== "待结算" || order.employeeId !== employeeId) return false;
+        return get().settleOrder(orderId, "次卡", 0, customerCardId, { source: "员工核销", employeeId });
       },
       sellCard: (customerId, productId) => {
         const product = get().cardProducts.find((item) => item.id === productId && item.active);
