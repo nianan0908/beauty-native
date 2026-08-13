@@ -2,6 +2,10 @@
   "pages": [
     "pages/entry/index",
     "pages/customer/index",
+    "pages/customer/booking",
+    "pages/customer/assets",
+    "pages/customer/profile",
+    "pages/customer/messages",
     "pages/assistant/login",
     "pages/assistant/dashboard",
     "pages/assistant/work",

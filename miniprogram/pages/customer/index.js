@@ -1,56 +1,32 @@
-const { CUSTOMER_H5_BASE_URL, buildCustomerUrl } = require("../../config");
+const customerData = require("../../services/customer-data");
 
 Page({
-  data: {
-    customerUrl: "",
-    configured: false,
-    loadFailed: false,
-  },
+  data: { state: null, store: null, stores: [], services: [], activities: [], upcoming: null, unreadCount: 0, storePickerOpen: false },
 
-  onLoad(options) {
-    wx.showShareMenu({ menus: ["shareAppMessage", "shareTimeline"] });
-    const configured = !CUSTOMER_H5_BASE_URL.includes("demo.example.com");
-    const page = options.page ? decodeURIComponent(options.page) : "首页";
-    this.setData({
-      configured,
-      customerUrl: configured ? buildCustomerUrl(page) : "",
-    });
-  },
+  onLoad() { wx.showShareMenu({ menus: ["shareAppMessage", "shareTimeline"] }); },
+  onShow() { this.loadData(); },
 
-  handleLoad() {
-    this.setData({ loadFailed: false });
+  loadData() {
+    const state = customerData.getState();
+    const store = customerData.stores.find((item) => item.id === state.selectedStoreId) || customerData.stores[0];
+    const services = customerData.services.filter((item) => item.storeIds.includes(store.id));
+    const activities = customerData.activities.filter((item) => item.storeId === store.id);
+    const upcoming = state.appointments.find((item) => ["待确认", "已确认"].includes(item.status)) || null;
+    this.setData({ state, store, stores: customerData.stores, services, activities, upcoming, unreadCount: state.messages.filter((item) => !item.read).length });
   },
-
-  handleError() {
-    this.setData({ loadFailed: true });
+  openStorePicker() { this.setData({ storePickerOpen: true }); },
+  closeStorePicker() { this.setData({ storePickerOpen: false }); },
+  selectStore(event) { customerData.setSelectedStore(event.currentTarget.dataset.id); this.setData({ storePickerOpen: false }); this.loadData(); },
+  openBooking(event) {
+    const dataset = event.currentTarget.dataset;
+    const query = [`storeId=${dataset.store || this.data.store.id}`];
+    if (dataset.service) query.push(`serviceId=${dataset.service}`);
+    if (dataset.activity) query.push(`activityId=${dataset.activity}`);
+    wx.navigateTo({ url: `/pages/customer/booking?${query.join("&")}` });
   },
-
-  retry() {
-    const currentUrl = this.data.customerUrl;
-    this.setData({ customerUrl: "", loadFailed: false }, () => {
-      this.setData({ customerUrl: currentUrl });
-    });
-  },
-
-  showSetupGuide() {
-    wx.showModal({
-      title: "还差一个部署地址",
-      content: "先部署根目录的 Web 项目，再把 miniprogram/config.js 中的示例域名替换为你的 HTTPS 域名。",
-      showCancel: false,
-    });
-  },
-
-  onShareAppMessage() {
-    return {
-      title: "栖光美学 · 品牌会员",
-      path: "/pages/customer/index?page=首页",
-    };
-  },
-
-  onShareTimeline() {
-    return {
-      title: "栖光美学 · 品牌会员",
-      query: "page=首页",
-    };
-  },
+  openAssets() { wx.navigateTo({ url: "/pages/customer/assets" }); },
+  openProfile() { wx.navigateTo({ url: "/pages/customer/profile" }); },
+  openMessages() { wx.navigateTo({ url: "/pages/customer/messages" }); },
+  onShareAppMessage() { return { title: "美天美业 · 品牌会员", path: "/pages/customer/index" }; },
+  onShareTimeline() { return { title: "美天美业 · 品牌会员" }; },
 });

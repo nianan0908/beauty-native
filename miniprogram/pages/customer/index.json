@@ -1,4 +1,5 @@
 {
-  "navigationBarTitleText": "栖光美学",
+  "navigationBarTitleText": "美天美业",
+  "navigationStyle": "custom",
   "enablePullDownRefresh": false
 }

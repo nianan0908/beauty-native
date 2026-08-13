@@ -1,59 +1,33 @@
 # 美天美业微信小程序接入
 
-当前小程序包含两个入口：
+当前小程序包含两个全原生入口：
 
-- 品牌会员：继续使用“React 顾客端 + 微信小程序 `web-view` 外壳”。
+- 品牌会员：微信原生 WXML/WXSS/JavaScript 页面。
 - 门店助手：使用原生小程序页面，为员工、店长和老板提供移动工作台。
 
 ## 已包含的内容
 
 - `miniprogram/`：微信小程序源码。
 - `project.config.json`：微信开发者工具项目配置。
-- `miniprogram/config.js`：配置顾客端网址、Python API 地址和演示模式。
-- 未配置、网络失败和业务域名错误提示页。
-- 小程序会直接进入顾客首页，不显示后台登录页。
+- `miniprogram/config.js`：配置 Python API 地址和演示模式。
+- 小程序启动页提供品牌会员与门店助手双入口。
 - 小程序转发和朋友圈分享入口。
 - iPhone 底部安全区适配。
 - 员工今日工作、服务状态、标准耗材和耗材申请。
 - 店长本店库存、低库存提醒和耗材审批。
 - 老板跨店经营概览、库存汇总和审批入口。
+- 顾客门店选择、活动、项目/员工/时段预约、优惠券、次卡、订单、消息和个人中心。
 
-## 1. 部署 Web 项目
-
-安装依赖并生成静态文件：
-
-```bash
-pnpm install
-pnpm build
-```
-
-将 `dist/` 部署到支持 HTTPS 的静态托管服务。必须部署在域名根路径，或者确保 Vite 的 `base` 与实际子路径一致。
-
-部署完成后，先用手机浏览器确认以下地址可以访问：
-
-```text
-https://你的域名/?shop=qiguang&page=首页
-```
-
-可选托管平台包括 Vercel、Cloudflare Pages、腾讯云静态网站托管、阿里云 OSS 或自己的 Nginx。
-
-## 2. 配置小程序顾客端地址
+## 1. 配置 Python API
 
 编辑 `miniprogram/config.js`：
 
 ```js
-const CUSTOMER_H5_BASE_URL = "https://你的域名/";
 const API_BASE_URL = "https://你的API域名/api/v1";
 const USE_MOCK_DATA = false;
 ```
 
-不要把查询参数写入这里。小程序会自动追加：
-
-```text
-shop=qiguang&page=首页&source=wechat-mini-program
-```
-
-## 3. 导入微信开发者工具
+## 2. 导入微信开发者工具
 
 1. 打开微信开发者工具。
 2. 选择“导入项目”。
@@ -63,9 +37,9 @@ shop=qiguang&page=首页&source=wechat-mini-program
 
 仓库中的 `touristappid` 只用于查看项目结构。真机预览、业务域名和发布需要你自己的 AppID。
 
-## 4. 配置微信业务域名
+## 3. 配置微信合法域名
 
-在微信公众平台的小程序后台，将 Web 顾客端域名添加为“业务域名”，将 Python API 域名添加为 `request` 合法域名。通常需要：
+在微信公众平台的小程序后台，将 Python API 域名添加为 `request` 合法域名。顾客端已经不再使用 `web-view`，因此不需要配置 H5 业务域名。
 
 - 使用已经备案的 HTTPS 域名。
 - 下载微信提供的域名校验文件，并将其放到网站根目录。
@@ -74,12 +48,12 @@ shop=qiguang&page=首页&source=wechat-mini-program
 
 本地开发时，微信开发者工具可以暂时关闭域名校验，但真机预览和正式发布仍需按微信平台要求配置。`web-view` 是否可用还取决于当前小程序主体类型和微信平台规则。
 
-## 5. 真机验证
+## 4. 真机验证
 
 建议按以下顺序检查：
 
 1. 启动页可以选择“品牌会员”或“门店助手”。
-2. 顾客入口可以正常进入会员首页并完成预约操作。
+2. 顾客入口原生进入会员首页，并完成选店、项目、员工、时段和优惠券预约。
 3. 员工可以查看本人工作并提交耗材申请。
 4. 店长只能查看本店库存并处理本店审批。
 5. 老板可以查看全部门店汇总和审批。
@@ -87,7 +61,7 @@ shop=qiguang&page=首页&source=wechat-mini-program
 
 ## 数据边界
 
-当 `USE_MOCK_DATA = true` 时，门店助手使用内置演示数据；顾客数据仍保存在 WebView 自己的 `localStorage` 中：
+当 `USE_MOCK_DATA = true` 时，门店助手使用内置演示数据；顾客数据通过小程序 `wx.setStorageSync` 保存在本机：
 
 - 同一部手机再次进入通常可以看到之前的数据。
 - 手机和电脑不会共享预约及订单。
@@ -97,14 +71,6 @@ shop=qiguang&page=首页&source=wechat-mini-program
 
 ## 常见问题
 
-### 页面显示“配置顾客端地址”
-
-`miniprogram/config.js` 仍然使用示例域名，请替换成实际 HTTPS 地址。
-
 ### 开发工具能打开，手机打不开
 
-优先检查业务域名、HTTPS 证书、域名备案和小程序主体的 `web-view` 权限。
-
-### H5 能打开，小程序内显示加载失败
-
-确认配置的是“业务域名”，而不是只配置 request 合法域名；同时检查网址是否发生了跳转到另一个未配置域名。
+优先检查 API 合法域名、HTTPS 证书、域名备案和 Python 服务响应。
