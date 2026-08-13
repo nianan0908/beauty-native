@@ -1,0 +1,66 @@
+.state-page {
+  min-height: 100vh;
+  padding: 180rpx 64rpx 80rpx;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  background: linear-gradient(180deg, #edf3f0 0%, #f7f9f7 56%);
+  text-align: center;
+}
+
+.brand-mark {
+  width: 96rpx;
+  height: 96rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: #ffffff;
+  background: #4f806b;
+  font-size: 36rpx;
+  font-weight: 700;
+  box-shadow: 0 16rpx 36rpx rgba(79, 128, 107, 0.22);
+}
+
+.state-label {
+  margin-top: 42rpx;
+  color: #6f927f;
+  font-size: 20rpx;
+  font-weight: 700;
+  letter-spacing: 3rpx;
+}
+
+.state-title {
+  margin-top: 28rpx;
+  color: #26332d;
+  font-size: 42rpx;
+  font-weight: 700;
+}
+
+.state-copy {
+  max-width: 560rpx;
+  margin-top: 22rpx;
+  color: #78847e;
+  font-size: 27rpx;
+  line-height: 1.75;
+}
+
+.primary-button {
+  width: 100%;
+  height: 92rpx;
+  margin-top: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 12rpx;
+  color: #ffffff;
+  background: #4f806b;
+  font-size: 28rpx;
+  font-weight: 650;
+}
+
+.primary-button::after {
+  border: 0;
+}

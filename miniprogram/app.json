@@ -1,0 +1,13 @@
+{
+  "pages": [
+    "pages/customer/index"
+  ],
+  "window": {
+    "navigationBarBackgroundColor": "#edf3f0",
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "栖光美学",
+    "backgroundColor": "#f6f9f7",
+    "backgroundTextStyle": "light"
+  },
+  "sitemapLocation": "sitemap.json"
+}

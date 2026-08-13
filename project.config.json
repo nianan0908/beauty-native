@@ -1,0 +1,17 @@
+{
+  "description": "栖光美业顾客端微信小程序外壳",
+  "compileType": "miniprogram",
+  "miniprogramRoot": "miniprogram/",
+  "appid": "touristappid",
+  "projectname": "qiguang-customer-demo",
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": true,
+    "coverView": true
+  },
+  "simulatorType": "wechat",
+  "condition": {}
+}

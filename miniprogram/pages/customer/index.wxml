@@ -1,0 +1,21 @@
+<web-view
+  wx:if="{{configured && !loadFailed}}"
+  src="{{customerUrl}}"
+  bindload="handleLoad"
+  binderror="handleError"
+/>
+
+<view wx:elif="{{loadFailed}}" class="state-page">
+  <view class="brand-mark">栖</view>
+  <view class="state-title">会员页面加载失败</view>
+  <view class="state-copy">请检查网络，以及 HTTPS 地址是否已经加入小程序业务域名。</view>
+  <button class="primary-button" bindtap="retry">重新加载</button>
+</view>
+
+<view wx:else class="state-page">
+  <view class="brand-mark">栖</view>
+  <view class="state-label">MINI PROGRAM SETUP</view>
+  <view class="state-title">配置顾客端地址</view>
+  <view class="state-copy">小程序外壳已经就绪。部署 Web 项目并配置业务域名后，即可在这里打开品牌会员端。</view>
+  <button class="primary-button" bindtap="showSetupGuide">查看配置说明</button>
+</view>
