@@ -9,6 +9,7 @@ from app.common.errors import ConflictError, ForbiddenError, NotFoundError
 from app.core.database import get_db_session
 from app.modules.auth.dependencies import assert_store_scope, require_permissions
 from app.modules.auth.schemas import Principal, RoleCode
+from app.modules.staff.models import StaffProfile
 from app.modules.store.models import Store
 from app.modules.store.schemas import StoreCreate, StoreUpdate, StoreView
 
@@ -42,6 +43,18 @@ async def scoped_store(session: AsyncSession, principal: Principal, store_id: st
     return store
 
 
+async def validate_manager(
+    session: AsyncSession, principal: Principal, manager_staff_id: str | None
+) -> None:
+    if manager_staff_id is None:
+        return
+    manager_tenant_id = await session.scalar(
+        select(StaffProfile.tenant_id).where(StaffProfile.id == manager_staff_id)
+    )
+    if manager_tenant_id != tenant_for(principal):
+        raise NotFoundError("门店负责人不存在。")
+
+
 @router.get("", response_model=list[StoreView], summary="门店列表")
 async def list_stores(principal: StoreReader, session: DbSession) -> list[Store]:
     result = await session.scalars(store_statement(principal).order_by(Store.created_at, Store.id))
@@ -58,6 +71,7 @@ async def create_store(
     )
     if duplicate is not None:
         raise ConflictError("当前商户已存在同名门店。")
+    await validate_manager(session, principal, payload.manager_staff_id)
     store = Store(
         id=f"MS{secrets.token_hex(10).upper()}",
         tenant_id=tenant_id,
@@ -87,6 +101,8 @@ async def update_store(
 ) -> Store:
     store = await scoped_store(session, principal, store_id)
     changes = payload.model_dump(exclude_unset=True)
+    if "manager_staff_id" in changes:
+        await validate_manager(session, principal, changes["manager_staff_id"])
     for field, value in changes.items():
         setattr(store, field, value.strip() if isinstance(value, str) else value)
     await session.commit()

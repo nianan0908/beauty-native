@@ -70,7 +70,7 @@ async def scoped_staff(
 
 
 async def resolve_services(
-    session: AsyncSession, tenant_id: str, service_ids: list[str]
+    session: AsyncSession, tenant_id: str, service_ids: list[str], store_id: str
 ) -> list[BeautyService]:
     services = list(
         (
@@ -78,12 +78,14 @@ async def resolve_services(
                 select(BeautyService).where(
                     BeautyService.tenant_id == tenant_id,
                     BeautyService.id.in_(set(service_ids)),
-                )
+                ).options(selectinload(BeautyService.stores))
             )
         ).all()
     )
     if len(services) != len(set(service_ids)):
         raise NotFoundError("部分服务项目不存在。")
+    if any(store_id not in {store.id for store in service.stores} for service in services):
+        raise ConflictError("员工只能配置所属门店提供的服务项目。")
     return services
 
 
@@ -124,7 +126,9 @@ async def create_staff(
         status="active",
         joined_at=payload.joined_at,
         monthly_target=payload.monthly_target,
-        services=await resolve_services(session, tenant_id, payload.service_ids),
+        services=await resolve_services(
+            session, tenant_id, payload.service_ids, payload.store_id
+        ),
     )
     session.add(profile)
     await session.commit()
@@ -147,6 +151,12 @@ async def update_staff(
     changes = payload.model_dump(exclude_unset=True)
     if "store_id" in changes:
         await ensure_store(session, principal, changes["store_id"])
+        await resolve_services(
+            session,
+            profile.tenant_id,
+            [service.id for service in profile.services],
+            changes["store_id"],
+        )
     for field, value in changes.items():
         setattr(profile, field, value.strip() if isinstance(value, str) else value)
     await session.commit()
@@ -161,7 +171,9 @@ async def update_staff_services(
     session: DbSession,
 ) -> StaffView:
     profile = await scoped_staff(session, principal, staff_id)
-    profile.services = await resolve_services(session, profile.tenant_id, payload.service_ids)
+    profile.services = await resolve_services(
+        session, profile.tenant_id, payload.service_ids, profile.store_id
+    )
     await session.commit()
     return view(profile)
 

@@ -1,7 +1,8 @@
 # 美天美业 API
 
 当前目录是 Python/FastAPI 后端。除 PostgreSQL、Redis、Dramatiq、Alembic、统一错误
-和健康检查外，已包含认证、多商户 RBAC、耗材库存和员工次卡核销基础模块。
+和健康检查外，已包含认证、多商户 RBAC、门店/员工/服务/排班主数据、耗材库存和员工
+次卡核销基础模块。
 
 ## 环境要求
 
@@ -47,6 +48,27 @@ Access Token 通过 Bearer Header 使用，只保存在前端内存；Refresh To
 
 本地演示账号为 `admin`、`boss`、`manager`、`reception`、`staff`、`customer`，统一密码
 为 `demo123`。种子脚本可重复执行。
+
+## 门店与经营主数据 API
+
+```text
+GET/POST       /api/v1/stores
+GET/PATCH      /api/v1/stores/{id}
+POST           /api/v1/stores/{id}/pause|resume
+GET/POST       /api/v1/staff
+GET/PATCH      /api/v1/staff/{id}
+PUT            /api/v1/staff/{id}/services
+POST           /api/v1/staff/{id}/disable|enable
+GET/POST/PATCH /api/v1/services
+POST           /api/v1/services/{id}/publish|unpublish
+GET            /api/v1/schedules
+PUT            /api/v1/schedules/batch
+DELETE         /api/v1/schedules/{id}
+```
+
+老板可管理当前商户全部主数据；店长只能管理所属门店的员工和排班；前台按所属门店只读
+门店、员工和服务；服务员工只能读取本人排班。停用员工会同步停用关联登录账号并使已签发
+Access Token 失效。员工服务能力必须属于其门店实际提供的项目。
 
 ## 耗材库存 API
 

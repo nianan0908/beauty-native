@@ -11,6 +11,7 @@ from app.modules.auth.dependencies import assert_store_scope, require_permission
 from app.modules.auth.schemas import Principal, RoleCode
 from app.modules.service.models import BeautyService
 from app.modules.service.schemas import ServiceCreate, ServiceUpdate, ServiceView
+from app.modules.staff.models import StaffProfile
 from app.modules.store.models import Store
 
 router = APIRouter()
@@ -141,6 +142,19 @@ async def update_service(
     changes = payload.model_dump(exclude_unset=True)
     store_ids = changes.pop("store_ids", None)
     if store_ids is not None:
+        removed_store_ids = {store.id for store in service.stores} - set(store_ids)
+        if removed_store_ids:
+            assigned_staff = await session.scalar(
+                select(StaffProfile.id)
+                .join(StaffProfile.services)
+                .where(
+                    BeautyService.id == service.id,
+                    StaffProfile.store_id.in_(removed_store_ids),
+                )
+                .limit(1)
+            )
+            if assigned_staff is not None:
+                raise ConflictError("请先解除相关门店员工的服务能力，再移除适用门店。")
         service.stores = await resolve_stores(session, principal, store_ids)
     if "duration" in changes:
         service.duration_minutes = changes.pop("duration")

@@ -42,8 +42,8 @@ pnpm check
 ## Python 后端
 
 仓库已包含位于 `backend/` 的 Python 后端，采用 FastAPI、PostgreSQL、SQLAlchemy、
-Alembic、Redis 和 Dramatiq。耗材模块已提供库存、入库、员工申请、店长审批、库存流水
-及服务完成自动扣减接口；其他业务仍处于前端演示阶段。
+Alembic、Redis 和 Dramatiq。真实登录、门店/员工/服务/排班主数据以及耗材和员工次卡
+核销基础接口已经接入；会员、预约、优惠券、消息及交易页面仍处于前端演示阶段。
 
 完整启动和检查命令见 [backend/README.md](./backend/README.md)，整体实施路线见
 [BACKEND_IMPLEMENTATION_PLAN.md](./BACKEND_IMPLEMENTATION_PLAN.md)。
@@ -63,9 +63,12 @@ Alembic、Redis 和 Dramatiq。耗材模块已提供库存、入库、员工申�
 
 ## 数据说明
 
-业务数据通过 Zustand 持久化到浏览器 `localStorage`。平台管理员可在“平台设置”中恢复预约、会员、订单、次卡、优惠券、消息、商家、门店和员工的完整初始演示数据。
+门店、员工、服务和排班由 Python API 管理；尚未迁移的预约、会员、订单、次卡、优惠券、
+消息及营销数据继续通过 Zustand 保留本地演示状态。平台管理员可在“平台设置”中恢复本地
+演示数据。
 
-登录角色保存到浏览器本地会话，当前一级页面同步到 URL 查询参数。未登录时不能仅通过 URL 中的角色参数进入工作区。预约表单中的临时输入不会写入 URL。
+Access Token 只保存在前端内存，Refresh Token 使用 HttpOnly Cookie。当前一级页面同步到
+URL 查询参数，但角色和商户范围只信任服务端登录身份。预约表单中的临时输入不会写入 URL。
 
 ## 当前业务规则
 
