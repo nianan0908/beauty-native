@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { authApi, type AuthUser } from "./auth-api";
+import { operationsApi } from "./operations-api";
 import { afterSales as seedAfterSales, appointments as seedAppointments, cardProducts as seedCardProducts, cardTransactions as seedCardTransactions, customerCards as seedCustomerCards, customerMessages as seedCustomerMessages, customers as seedCustomers, employees, marketingActivities as seedMarketingActivities, marketplaceStores, orders as seedOrders, platformAuditLogs as seedPlatformAuditLogs, promotionCoupons, saasPlans as seedSaasPlans, services as seedServices, staffMembers as seedStaffMembers, staffSchedules as seedStaffSchedules, stores as seedStores, tenants as seedTenants } from "./data";
 import { canTransitionAppointment, validateAppointment, type AppointmentInput } from "./business-rules";
 import { approvedStatus, canTransitionAfterSale } from "./after-sale-rules";
@@ -621,56 +622,106 @@ function createPlatformLog(action: string, target: string, detail: string, risk:
 }
 
 interface OperationsState {
+  status: "idle" | "loading" | "ready" | "error";
+  error: string | null;
   staff: StaffMember[];
   stores: StoreInfo[];
   schedules: StaffSchedule[];
   services: ServiceItem[];
   activities: MarketingActivity[];
-  saveStaff: (staff: StaffMember) => void;
-  saveStore: (store: StoreInfo) => void;
-  saveService: (service: ServiceItem) => void;
+  loadOperations: (role: Role) => Promise<void>;
+  saveStaff: (staff: StaffMember) => Promise<void>;
+  saveStore: (store: StoreInfo) => Promise<void>;
+  saveService: (service: ServiceItem) => Promise<void>;
   saveActivity: (activity: MarketingActivity) => void;
-  toggleStaffStatus: (staffId: string) => void;
-  toggleStoreStatus: (storeId: string) => void;
-  toggleServiceStatus: (serviceId: string) => void;
+  toggleStaffStatus: (staffId: string) => Promise<void>;
+  toggleStoreStatus: (storeId: string) => Promise<void>;
+  toggleServiceStatus: (serviceId: string) => Promise<void>;
   toggleActivityStatus: (activityId: string) => void;
-  setScheduleType: (employeeId: string, date: string, type: StaffSchedule["type"] | null) => void;
-  saveSchedules: (schedules: StaffSchedule[]) => void;
+  setScheduleType: (employeeId: string, date: string, type: StaffSchedule["type"] | null) => Promise<void>;
+  saveSchedules: (schedules: StaffSchedule[]) => Promise<void>;
   resetOperations: () => void;
 }
 
 export const useOperations = create<OperationsState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
+      status: "idle",
+      error: null,
       staff: seedStaffMembers,
       stores: seedStores,
       schedules: seedStaffSchedules,
       services: seedServices,
       activities: seedMarketingActivities,
-      saveStaff: (staff) => set((state) => ({ staff: state.staff.some((item) => item.id === staff.id) ? state.staff.map((item) => item.id === staff.id ? staff : item) : [staff, ...state.staff] })),
-      saveStore: (store) => set((state) => ({ stores: state.stores.some((item) => item.id === store.id) ? state.stores.map((item) => item.id === store.id ? store : item) : [store, ...state.stores] })),
-      saveService: (service) => set((state) => ({ services: state.services.some((item) => item.id === service.id) ? state.services.map((item) => item.id === service.id ? service : item) : [service, ...state.services] })),
+      loadOperations: async (role) => {
+        if (get().status === "loading") return;
+        set({ status: "loading", error: null });
+        try {
+          const state = get();
+          const data = await operationsApi.load(role, state);
+          set(data ? { ...data, status: "ready", error: null } : { status: "ready" });
+        } catch (cause) {
+          set({ status: "error", error: cause instanceof Error ? cause.message : "主数据加载失败" });
+        }
+      },
+      saveStaff: async (staff) => {
+        const exists = get().staff.some((item) => item.id === staff.id);
+        const saved = await operationsApi.saveStaff(staff, exists);
+        set((state) => ({ staff: exists ? state.staff.map((item) => item.id === saved.id ? saved : item) : [saved, ...state.staff] }));
+      },
+      saveStore: async (store) => {
+        const exists = get().stores.some((item) => item.id === store.id);
+        const saved = await operationsApi.saveStore(store, exists, get().staff);
+        set((state) => ({ stores: exists ? state.stores.map((item) => item.id === saved.id ? saved : item) : [saved, ...state.stores] }));
+      },
+      saveService: async (service) => {
+        const previous = get().services.find((item) => item.id === service.id);
+        const saved = await operationsApi.saveService(service, Boolean(previous), previous);
+        set((state) => ({ services: previous ? state.services.map((item) => item.id === saved.id ? saved : item) : [saved, ...state.services] }));
+      },
       saveActivity: (activity) => set((state) => ({ activities: state.activities.some((item) => item.id === activity.id) ? state.activities.map((item) => item.id === activity.id ? activity : item) : [activity, ...state.activities] })),
-      toggleStaffStatus: (staffId) => set((state) => ({ staff: state.staff.map((item) => item.id === staffId ? { ...item, status: item.status === "在职" ? "停用" : "在职" } : item) })),
-      toggleStoreStatus: (storeId) => set((state) => ({ stores: state.stores.map((item) => item.id === storeId ? { ...item, status: item.status === "营业中" ? "暂停营业" : "营业中" } : item) })),
-      toggleServiceStatus: (serviceId) => set((state) => ({ services: state.services.map((item) => item.id === serviceId ? { ...item, isOnline: !item.isOnline } : item) })),
+      toggleStaffStatus: async (staffId) => {
+        const current = get().staff.find((item) => item.id === staffId);
+        if (!current) return;
+        const saved = await operationsApi.toggleStaff(current);
+        set((state) => ({ staff: state.staff.map((item) => item.id === saved.id ? saved : item) }));
+      },
+      toggleStoreStatus: async (storeId) => {
+        const current = get().stores.find((item) => item.id === storeId);
+        if (!current) return;
+        const saved = await operationsApi.toggleStore(current, get().staff);
+        set((state) => ({ stores: state.stores.map((item) => item.id === saved.id ? saved : item) }));
+      },
+      toggleServiceStatus: async (serviceId) => {
+        const current = get().services.find((item) => item.id === serviceId);
+        if (!current) return;
+        const saved = await operationsApi.toggleService(current);
+        set((state) => ({ services: state.services.map((item) => item.id === saved.id ? saved : item) }));
+      },
       toggleActivityStatus: (activityId) => set((state) => ({ activities: state.activities.map((item) => item.id === activityId ? { ...item, status: item.status === "已停用" ? "进行中" : "已停用" } : item) })),
-      setScheduleType: (employeeId, date, type) => set((state) => {
-        const existing = state.schedules.find((item) => item.employeeId === employeeId && item.date === date);
-        if (!type) return { schedules: state.schedules.filter((item) => item.employeeId !== employeeId || item.date !== date) };
-        if (existing) return { schedules: state.schedules.map((item) => item.id === existing.id ? { ...item, type } : item) };
-        return { schedules: [...state.schedules, { id: createId("SH"), employeeId, date, startTime: "09:30", endTime: "18:30", type }] };
-      }),
-      saveSchedules: (entries) => set((state) => {
-        const keys = new Set(entries.map((item) => `${item.employeeId}:${item.date}`));
-        return { schedules: [...state.schedules.filter((item) => !keys.has(`${item.employeeId}:${item.date}`)), ...entries] };
-      }),
+      setScheduleType: async (employeeId, date, type) => {
+        const existing = get().schedules.find((item) => item.employeeId === employeeId && item.date === date);
+        if (!type) {
+          if (existing) await operationsApi.deleteSchedule(existing.id);
+          set((state) => ({ schedules: state.schedules.filter((item) => item.employeeId !== employeeId || item.date !== date) }));
+          return;
+        }
+        await get().saveSchedules([{ id: existing?.id ?? createId("SH"), employeeId, date, startTime: existing?.startTime ?? "09:30", endTime: existing?.endTime ?? "18:30", type }]);
+      },
+      saveSchedules: async (entries) => {
+        const saved = await operationsApi.saveSchedules(entries);
+        set((state) => {
+          const keys = new Set(saved.map((item) => `${item.employeeId}:${item.date}`));
+          return { schedules: [...state.schedules.filter((item) => !keys.has(`${item.employeeId}:${item.date}`)), ...saved] };
+        });
+      },
       resetOperations: () => set({ staff: seedStaffMembers, stores: seedStores, schedules: seedStaffSchedules, services: seedServices, activities: seedMarketingActivities }),
     }),
     {
       name: "qiguang-operations-v3",
       version: 3,
-      migrate: () => ({ staff: seedStaffMembers, stores: seedStores, schedules: seedStaffSchedules, services: seedServices, activities: seedMarketingActivities }),
+      partialize: (state) => ({ activities: state.activities }),
+      migrate: () => ({ staff: seedStaffMembers, stores: seedStores, schedules: seedStaffSchedules, services: seedServices, activities: seedMarketingActivities, status: "idle", error: null }),
     },
   ),
 );

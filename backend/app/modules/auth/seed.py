@@ -115,10 +115,18 @@ def role_id(code: str) -> str:
 
 async def upsert_permissions(session: AsyncSession) -> dict[str, Permission]:
     existing = {item.code: item for item in (await session.scalars(select(Permission))).all()}
-    for index, (code, description) in enumerate(PERMISSIONS.items(), start=1):
+    used_ids = {item.id for item in existing.values()}
+    next_id = max((int(item_id.removeprefix("PERM")) for item_id in used_ids), default=0) + 1
+    for code, description in PERMISSIONS.items():
         permission = existing.get(code)
         if permission is None:
-            permission = Permission(id=f"PERM{index:03d}", code=code, description=description)
+            while f"PERM{next_id:03d}" in used_ids:
+                next_id += 1
+            permission = Permission(
+                id=f"PERM{next_id:03d}", code=code, description=description
+            )
+            used_ids.add(permission.id)
+            next_id += 1
             session.add(permission)
             existing[code] = permission
         else:

@@ -1,6 +1,6 @@
 Page({
   openCustomer() {
-    wx.navigateTo({ url: "/pages/customer/index?page=首页" });
+    wx.navigateTo({ url: "/pages/customer/index" });
   },
 
   openAssistant() {

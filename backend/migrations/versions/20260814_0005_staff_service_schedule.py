@@ -31,10 +31,7 @@ def upgrade() -> None:
         sa.Column("monthly_target", sa.Numeric(12, 2), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
-        sa.CheckConstraint("duration_minutes > 0", name="duration_positive"),
-        sa.CheckConstraint("price >= 0", name="price_nonnegative"),
         sa.ForeignKeyConstraint(["tenant_id"], ["tenants.id"], ondelete="RESTRICT"),
-        sa.UniqueConstraint("tenant_id", "name"),
         sa.ForeignKeyConstraint(["store_id"], ["stores.id"], ondelete="RESTRICT"),
         sa.UniqueConstraint("tenant_id", "phone"),
     )
@@ -68,7 +65,10 @@ def upgrade() -> None:
         sa.Column("booking_enabled", sa.Boolean(), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
+        sa.CheckConstraint("duration_minutes > 0", name="duration_positive"),
+        sa.CheckConstraint("price >= 0", name="price_nonnegative"),
         sa.ForeignKeyConstraint(["tenant_id"], ["tenants.id"], ondelete="RESTRICT"),
+        sa.UniqueConstraint("tenant_id", "name"),
     )
     op.create_index("ix_services_tenant_id", "services", ["tenant_id"])
     op.create_index("ix_services_is_online", "services", ["is_online"])

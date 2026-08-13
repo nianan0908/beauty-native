@@ -400,6 +400,7 @@ function Workspace({ role }: { role: Role }) {
   const [selectedMarketplaceStore, setSelectedMarketplaceStore] = useState<MarketplaceStore | null>(null);
   const [selectedBookingOffer, setSelectedBookingOffer] = useState<BookingOffer | null>(null);
   const setCustomerStoreId = useCustomerContext((state) => state.setStoreId);
+  const loadOperations = useOperations((state) => state.loadOperations);
   const user = useMemo(() => {
     const demoUser = demoUsers.find((item) => item.role === role)!;
     if (!sessionUser || sessionUser.role !== role) return demoUser;
@@ -416,6 +417,10 @@ function Workspace({ role }: { role: Role }) {
   const setSelectedStoreId = useMerchantScope((state) => state.setSelectedStoreId);
   const effectiveStoreId = role === "owner" ? selectedStoreId : user.storeId ?? DEMO_CONTEXT.defaultStoreId;
   const selectedStoreName = stores.find((store) => store.id === effectiveStoreId)?.name ?? "全部门店";
+
+  useEffect(() => {
+    if (!privateShop) void loadOperations(role);
+  }, [loadOperations, privateShop, role]);
 
   useEffect(() => {
     if (!["owner", "platform", "customer"].includes(role) && user.storeId && selectedStoreId !== user.storeId) {
