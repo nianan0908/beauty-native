@@ -1,9 +1,9 @@
 {
-  "desc": "栖光美学品牌会员演示小程序",
+  "desc": "栖光美业会员与门店助手小程序",
   "rules": [
     {
       "action": "allow",
-      "page": "pages/customer/index"
+      "page": "*"
     }
   ]
 }

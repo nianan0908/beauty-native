@@ -35,7 +35,7 @@ pnpm check
 
 ## 微信小程序顾客端
 
-项目包含位于 `miniprogram/` 的微信小程序 `web-view` 外壳，可以直接承载现有品牌会员端。部署 Web 项目后，在 `miniprogram/config.js` 中填写 HTTPS 地址，再通过仓库根目录的 `project.config.json` 导入微信开发者工具。
+项目包含位于 `miniprogram/` 的微信小程序：顾客入口通过 `web-view` 承载现有品牌会员端，门店助手使用原生小程序页面支持员工、店长和老板。部署 Web 与 Python API 后，在 `miniprogram/config.js` 中填写 HTTPS 地址，再通过仓库根目录的 `project.config.json` 导入微信开发者工具。
 
 完整步骤见 [MINIPROGRAM.md](./MINIPROGRAM.md)。
 

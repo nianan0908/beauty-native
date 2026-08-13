@@ -1,11 +1,17 @@
 {
   "pages": [
-    "pages/customer/index"
+    "pages/entry/index",
+    "pages/customer/index",
+    "pages/assistant/login",
+    "pages/assistant/dashboard",
+    "pages/assistant/work",
+    "pages/assistant/inventory",
+    "pages/assistant/approvals"
   ],
   "window": {
     "navigationBarBackgroundColor": "#edf3f0",
     "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "栖光美学",
+    "navigationBarTitleText": "栖光美业",
     "backgroundColor": "#f6f9f7",
     "backgroundTextStyle": "light"
   },

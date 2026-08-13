@@ -1,0 +1,30 @@
+<view wx:if="{{user}}" class="assistant-page dashboard-page">
+  <view class="assistant-header">
+    <view><text>{{user.storeName}}</text><strong>{{user.role === 'employee' ? '早上好，' + user.name : user.role === 'manager' ? '今日门店运营' : '品牌经营概览'}}</strong><small>{{metrics.headline}}</small></view>
+    <button bindtap="switchRole"><view>{{user.initial}}</view><text>切换</text></button>
+  </view>
+
+  <view class="metric-grid">
+    <view class="metric-card primary"><text>{{metrics.primaryLabel}}</text><strong>{{metrics.primary}}</strong><small>{{user.role === 'employee' ? '查看今日安排' : '实时经营数据'}}</small></view>
+    <view class="metric-card"><text>{{metrics.secondaryLabel}}</text><strong>{{metrics.secondary}}</strong><small>{{user.role === 'owner' ? '全部门店' : user.storeName}}</small></view>
+  </view>
+
+  <view class="quick-actions">
+    <button bindtap="openWork"><view class="quick-icon work">今</view><text>{{user.role === 'employee' ? '我的服务' : '今日预约'}}</text><small>{{appointments.length}} 项安排</small></button>
+    <button bindtap="openInventory"><view class="quick-icon stock">耗</view><text>{{user.role === 'employee' ? '耗材申请' : '库存管理'}}</text><small>{{metrics.lowStock}} 项需关注</small></button>
+    <button wx:if="{{user.role !== 'employee'}}" bindtap="openApprovals"><view class="quick-icon approval">审</view><text>待我审批</text><small>{{metrics.pending}} 项待处理</small></button>
+    <button wx:else bindtap="openInventory"><view class="quick-icon approval">流</view><text>我的记录</text><small>领用与报损</small></button>
+  </view>
+
+  <view class="section-head"><view><strong>{{user.role === 'employee' ? '我的服务' : '今日预约'}}</strong><text>8月14日 · 星期五</text></view><button bindtap="openWork">全部 ›</button></view>
+  <view class="appointment-list">
+    <button wx:for="{{appointments}}" wx:key="id" bindtap="openWork">
+      <view class="time-box"><strong>{{item.time}}</strong><text>{{item.status}}</text></view>
+      <view class="appointment-copy"><strong>{{item.customer}}</strong><text>{{item.service}}</text><small wx:if="{{user.role !== 'employee'}}">服务员工 · {{item.employee}}</small></view>
+      <view class="row-arrow">›</view>
+    </button>
+    <view wx:if="{{!appointments.length && !loading}}" class="empty-card">今天暂时没有服务安排</view>
+  </view>
+
+  <button wx:if="{{user.role !== 'employee' && metrics.lowStock}}" class="attention-card" bindtap="openInventory"><view>!</view><text><strong>{{metrics.lowStock}} 项耗材需要关注</strong><small>库存低于安全库存，请及时处理</small></text><view>›</view></button>
+</view>

@@ -1,0 +1,40 @@
+<view class="entry-page">
+  <view class="ambient ambient-one"></view>
+  <view class="ambient ambient-two"></view>
+  <view class="entry-brand">
+    <view class="brand-mark">栖</view>
+    <view>
+      <text>QIGUANG BEAUTY OS</text>
+      <view>栖光美业</view>
+    </view>
+  </view>
+
+  <view class="entry-copy">
+    <text>一间门店，两个入口</text>
+    <view>让顾客安心预约，<br/>让团队高效协作。</view>
+    <text class="entry-description">会员服务与门店经营汇聚在同一个小程序。</text>
+  </view>
+
+  <view class="entry-options">
+    <button class="entry-card customer-card" bindtap="openCustomer">
+      <view class="entry-icon">悦</view>
+      <view class="entry-card-copy">
+        <text>我是顾客</text>
+        <view>品牌会员</view>
+        <text>预约服务 · 查看权益 · 管理订单</text>
+      </view>
+      <view class="entry-arrow">›</view>
+    </button>
+    <button class="entry-card assistant-card" bindtap="openAssistant">
+      <view class="entry-icon">店</view>
+      <view class="entry-card-copy">
+        <text>我是员工 / 管理者</text>
+        <view>门店助手</view>
+        <text>今日工作 · 耗材库存 · 门店审批</text>
+      </view>
+      <view class="entry-arrow">›</view>
+    </button>
+  </view>
+
+  <view class="entry-foot">栖光美业数字化经营平台</view>
+</view>

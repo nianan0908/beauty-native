@@ -133,7 +133,7 @@ async def rotate_refresh_token(
     statement = (
         select(RefreshToken)
         .where(RefreshToken.token_hash == refresh_token_digest(raw_token))
-        .with_for_update()
+        .with_for_update(of=RefreshToken)
         .options(
             joinedload(RefreshToken.user).joinedload(User.tenant),
             joinedload(RefreshToken.user).selectinload(User.stores),

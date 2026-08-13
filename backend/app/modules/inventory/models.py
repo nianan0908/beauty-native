@@ -3,7 +3,16 @@ from datetime import datetime
 from decimal import Decimal
 from enum import StrEnum
 
-from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Numeric, String, Text, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Numeric,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -43,12 +52,15 @@ class Consumable(Base):
 
 class ConsumableStock(Base):
     __tablename__ = "consumable_stocks"
-    __table_args__ = (UniqueConstraint("store_id", "consumable_id"),)
+    __table_args__ = (
+        CheckConstraint("quantity >= 0", name="quantity_nonnegative"),
+        UniqueConstraint("store_id", "consumable_id"),
+    )
 
     id: Mapped[str] = mapped_column(String(32), primary_key=True)
     merchant_id: Mapped[str] = mapped_column(String(32), index=True)
     store_id: Mapped[str] = mapped_column(String(32), index=True)
-    consumable_id: Mapped[str] = mapped_column(ForeignKey("consumables.id"), index=True)
+    consumable_id: Mapped[str] = mapped_column(ForeignKey("consumables.id"))
     quantity: Mapped[Decimal] = mapped_column(Numeric(14, 3), default=Decimal("0"))
     safety_stock: Mapped[Decimal] = mapped_column(Numeric(14, 3), default=Decimal("0"))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now)
@@ -56,18 +68,22 @@ class ConsumableStock(Base):
 
 class ServiceConsumableUsage(Base):
     __tablename__ = "service_consumable_usages"
-    __table_args__ = (UniqueConstraint("service_id", "consumable_id"),)
+    __table_args__ = (
+        CheckConstraint("quantity > 0", name="quantity_positive"),
+        UniqueConstraint("service_id", "consumable_id"),
+    )
 
     id: Mapped[str] = mapped_column(String(32), primary_key=True)
     merchant_id: Mapped[str] = mapped_column(String(32), index=True)
     service_id: Mapped[str] = mapped_column(String(32), index=True)
-    consumable_id: Mapped[str] = mapped_column(ForeignKey("consumables.id"), index=True)
+    consumable_id: Mapped[str] = mapped_column(ForeignKey("consumables.id"))
     quantity: Mapped[Decimal] = mapped_column(Numeric(14, 3))
 
 
 class ConsumableTransaction(Base):
     __tablename__ = "consumable_transactions"
     __table_args__ = (
+        CheckConstraint("quantity > 0", name="quantity_positive"),
         UniqueConstraint(
             "appointment_id", "consumable_id", "type", name="uq_consumable_service_deduction"
         ),
@@ -76,13 +92,11 @@ class ConsumableTransaction(Base):
     id: Mapped[str] = mapped_column(String(32), primary_key=True)
     merchant_id: Mapped[str] = mapped_column(String(32), index=True)
     store_id: Mapped[str] = mapped_column(String(32), index=True)
-    consumable_id: Mapped[str] = mapped_column(ForeignKey("consumables.id"), index=True)
-    type: Mapped[TransactionType] = mapped_column(Enum(TransactionType, native_enum=False))
+    consumable_id: Mapped[str] = mapped_column(ForeignKey("consumables.id"))
+    type: Mapped[TransactionType] = mapped_column(String(30))
     quantity: Mapped[Decimal] = mapped_column(Numeric(14, 3))
     change: Mapped[Decimal] = mapped_column(Numeric(14, 3))
-    status: Mapped[TransactionStatus] = mapped_column(
-        Enum(TransactionStatus, native_enum=False), index=True
-    )
+    status: Mapped[TransactionStatus] = mapped_column(String(20), index=True)
     employee_id: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)
     service_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
     appointment_id: Mapped[str | None] = mapped_column(String(32), nullable=True)

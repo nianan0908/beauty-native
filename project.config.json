@@ -1,9 +1,9 @@
 {
-  "description": "栖光美业顾客端微信小程序外壳",
+  "description": "栖光美业会员与门店助手微信小程序",
   "compileType": "miniprogram",
   "miniprogramRoot": "miniprogram/",
   "appid": "touristappid",
-  "projectname": "qiguang-customer-demo",
+  "projectname": "qiguang-beauty-assistant",
   "setting": {
     "urlCheck": false,
     "es6": true,

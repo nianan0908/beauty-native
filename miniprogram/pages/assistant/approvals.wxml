@@ -1,0 +1,5 @@
+<view class="approval-page">
+  <view class="approval-heading"><text>CONSUMABLE APPROVAL</text><strong>耗材审批</strong><small>{{user.role === 'owner' ? '全部门店' : user.storeName}} · {{pending.length}} 项待处理</small></view>
+  <view class="approval-list"><view wx:for="{{pending}}" wx:key="id" class="approval-card"><view class="approval-top"><view class="request-type type-{{item.type}}">{{item.type}}</view><text>{{item.created_at}}</text></view><view class="approval-main"><view class="employee-avatar">{{item.employeeInitial}}</view><view><strong>{{item.employee_name}} · {{item.consumable_name}}</strong><text>{{item.service_name || '未关联服务单'}}</text><p>{{item.reason}}</p></view><strong>{{item.quantity}}{{item.unit}}</strong></view><view class="approval-actions"><button data-id="{{item.id}}" bindtap="reject">驳回</button><button class="approve" data-id="{{item.id}}" bindtap="approve">审批通过</button></view></view></view>
+  <view wx:if="{{!pending.length && !loading}}" class="approval-empty"><view>✓</view><strong>没有待审批申请</strong><text>新的领用、退回或报损会显示在这里</text></view>
+</view>

@@ -2,7 +2,15 @@ import uuid
 from datetime import date, datetime
 from enum import StrEnum
 
-from sqlalchemy import Date, DateTime, Enum, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import (
+    CheckConstraint,
+    Date,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -38,7 +46,7 @@ class RedemptionOrder(Base):
     service_name: Mapped[str] = mapped_column(String(100))
     employee_name: Mapped[str] = mapped_column(String(100))
     status: Mapped[OrderStatus] = mapped_column(
-        Enum(OrderStatus, native_enum=False), default=OrderStatus.PENDING, index=True
+        String(20), default=OrderStatus.PENDING, index=True
     )
     payment_method: Mapped[str | None] = mapped_column(String(20), nullable=True)
     customer_card_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
@@ -48,6 +56,9 @@ class RedemptionOrder(Base):
 
 class CustomerCard(Base):
     __tablename__ = "customer_cards"
+    __table_args__ = (
+        CheckConstraint("remaining_times >= 0", name="remaining_times_nonnegative"),
+    )
 
     id: Mapped[str] = mapped_column(String(32), primary_key=True)
     merchant_id: Mapped[str] = mapped_column(String(32), index=True)
@@ -57,20 +68,23 @@ class CustomerCard(Base):
     remaining_times: Mapped[int] = mapped_column(Integer)
     expires_at: Mapped[date] = mapped_column(Date)
     status: Mapped[CardStatus] = mapped_column(
-        Enum(CardStatus, native_enum=False), default=CardStatus.ACTIVE, index=True
+        String(20), default=CardStatus.ACTIVE, index=True
     )
 
 
 class CardRedemption(Base):
     __tablename__ = "card_redemptions"
-    __table_args__ = (UniqueConstraint("order_id", name="uq_card_redemptions_order_id"),)
+    __table_args__ = (
+        CheckConstraint("balance >= 0", name="balance_nonnegative"),
+        UniqueConstraint("order_id", name="uq_card_redemptions_order_id"),
+    )
 
     id: Mapped[str] = mapped_column(String(32), primary_key=True)
     merchant_id: Mapped[str] = mapped_column(String(32), index=True)
     store_id: Mapped[str] = mapped_column(String(32), index=True)
-    order_id: Mapped[str] = mapped_column(ForeignKey("orders.id"), index=True)
+    order_id: Mapped[str] = mapped_column(ForeignKey("orders.id"))
     appointment_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
-    card_id: Mapped[str] = mapped_column(ForeignKey("customer_cards.id"), index=True)
+    card_id: Mapped[str] = mapped_column(ForeignKey("customer_cards.id"))
     customer_id: Mapped[str] = mapped_column(String(32), index=True)
     service_id: Mapped[str] = mapped_column(String(32))
     employee_id: Mapped[str] = mapped_column(String(32), index=True)
