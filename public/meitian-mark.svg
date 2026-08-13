@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">美天美业</title>
+  <rect width="64" height="64" rx="14" fill="#315f4d"/>
+  <ellipse cx="57" cy="62" rx="22" ry="9" fill="#ffffff" opacity=".1" transform="rotate(-12 57 62)"/>
+  <circle cx="51" cy="13" r="5" fill="#efb36d"/>
+  <text x="32" y="43" fill="#fffdf8" font-family="Songti SC, STSong, serif" font-size="34" font-weight="700" text-anchor="middle">美</text>
+</svg>

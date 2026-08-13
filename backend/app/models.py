@@ -8,6 +8,9 @@ from app.modules.inventory.models import (
     ServiceConsumableUsage,
 )
 from app.modules.redemption.models import CardRedemption, CustomerCard, RedemptionOrder
+from app.modules.schedule.models import StaffSchedule
+from app.modules.service.models import BeautyService
+from app.modules.staff.models import StaffProfile
 from app.modules.store.models import Store
 from app.modules.tenant.models import Plan, Tenant
 
@@ -23,6 +26,9 @@ __all__ = [
     "RedemptionOrder",
     "Role",
     "ServiceConsumableUsage",
+    "BeautyService",
+    "StaffProfile",
+    "StaffSchedule",
     "Store",
     "Tenant",
     "User",

@@ -1,9 +1,9 @@
 {
-  "description": "栖光美业会员与门店助手微信小程序",
+  "description": "美天美业会员与门店助手微信小程序",
   "compileType": "miniprogram",
   "miniprogramRoot": "miniprogram/",
   "appid": "touristappid",
-  "projectname": "qiguang-beauty-assistant",
+  "projectname": "meitian-beauty-assistant",
   "setting": {
     "urlCheck": false,
     "es6": true,

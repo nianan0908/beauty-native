@@ -18,8 +18,18 @@ body { margin: 0; min-width: 320px; min-height: 100vh; }
 button, input { font: inherit; }
 button { border: 0; cursor: pointer; letter-spacing: 0; }
 
-.brand { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 700; letter-spacing: 0; }
-.brand-mark { width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; background: var(--green); color: white; }
+.brand { display: flex; align-items: center; color: var(--ink); }
+.brand-lockup { display: inline-flex; align-items: center; gap: 10px; }
+.brand-symbol { width: 38px; height: 38px; flex: 0 0 auto; position: relative; display: grid; place-items: center; overflow: hidden; border-radius: 8px; color: #fffdf8; background: #315f4d; box-shadow: 0 5px 14px rgba(34,80,61,.18); }
+.brand-symbol::after { content: ""; width: 25px; height: 9px; position: absolute; right: -6px; bottom: -3px; border-radius: 50%; background: rgba(255,255,255,.12); transform: rotate(-12deg); }
+.brand-symbol-letter { position: relative; z-index: 1; font-family: "Songti SC", "STSong", serif; font-size: 21px; font-weight: 700; line-height: 1; }
+.brand-symbol-sun { width: 6px; height: 6px; position: absolute; z-index: 2; top: 6px; right: 6px; border-radius: 50%; background: #efb36d; box-shadow: 0 0 0 2px rgba(239,179,109,.16); }
+.brand-symbol-small { width: 27px; height: 27px; border-radius: 6px; box-shadow: none; }
+.brand-symbol-small .brand-symbol-letter { font-size: 15px; }
+.brand-symbol-small .brand-symbol-sun { width: 4px; height: 4px; top: 4px; right: 4px; box-shadow: none; }
+.brand-wordmark { display: inline-flex; align-items: baseline; gap: 7px; white-space: nowrap; }
+.brand-wordmark strong { font-size: 19px; font-weight: 760; }
+.brand-wordmark > span { padding-left: 7px; border-left: 1px solid #b8c8c0; color: #6f7d76; font-size: 11px; font-weight: 650; }
 .brand-button { width: fit-content; padding: 5px 7px 5px 5px; margin: -5px; border-radius: 7px; color: var(--ink); background: transparent; text-align: left; transition: background .16s ease, transform .16s ease; }
 .brand-button:hover { background: rgba(255,255,255,.72); }
 .brand-button:active { transform: translateY(1px); }
@@ -1028,13 +1038,16 @@ button { border: 0; cursor: pointer; letter-spacing: 0; }
 .ai-advisor-trigger > i { display: grid; place-items: center; font-style: normal; }
 .mobile-tabbar > .ai-advisor-tab { align-self: stretch; position: relative; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 3px; color: var(--green); background: transparent; font-size: 9px; }
 .ai-advisor-tab > i { width: 48px; height: 48px; margin-top: -22px; display: grid; place-items: center; border: 4px solid white; border-radius: 50%; color: white; background: var(--green); box-shadow: 0 5px 15px rgba(44,99,75,.24); font-style: normal; transition: transform .16s ease, background .16s ease; }
+.ai-advisor-tab .brand-symbol { width: 40px; height: 40px; border-radius: 50%; }
+.ai-advisor-tab .brand-symbol-letter { font-size: 18px; }
+.ai-advisor-tab .brand-symbol-sun { top: 6px; right: 7px; }
 .ai-advisor-tab > span { color: #718078; font-weight: 650; }
 .ai-advisor-tab:hover > i, .ai-advisor-tab.active > i { background: #356f57; transform: translateY(-2px); }
 .ai-advisor-tab.active > span { color: var(--green); }
 .ai-advisor-scrim { position: fixed; z-index: 89; inset: 0; background: rgba(14,22,18,.48); }
 .ai-advisor-sheet { width: min(100%,520px); height: min(82vh,720px); position: fixed; z-index: 90; left: 50%; bottom: 0; transform: translateX(-50%); display: grid; grid-template-rows: 64px 38px minmax(0,1fr) auto auto 62px; overflow: hidden; border-radius: 8px 8px 0 0; background: #f5f7f5; box-shadow: 0 -18px 44px rgba(17,27,22,.2); }
 .ai-advisor-head { padding: 0 16px; display: grid; grid-template-columns: 38px minmax(0,1fr) 34px; align-items: center; gap: 9px; color: #35463f; background: #e3eee8; }
-.ai-advisor-head > span { width: 37px; height: 37px; display: grid; place-items: center; border-radius: 50%; color: var(--green); background: white; }
+.ai-advisor-head > .brand-symbol { width: 37px; height: 37px; border-radius: 8px; }
 .ai-advisor-head > div { display: flex; flex-direction: column; gap: 4px; }
 .ai-advisor-head strong { font-size: 12px; }
 .ai-advisor-head small { display: flex; align-items: center; gap: 5px; color: #74847c; font-size: 7px; }
@@ -1046,7 +1059,7 @@ button { border: 0; cursor: pointer; letter-spacing: 0; }
 .ai-message-list { min-height: 0; padding: 15px 14px 10px; overflow-y: auto; scroll-behavior: smooth; }
 .ai-message { margin-bottom: 12px; display: flex; align-items: flex-start; gap: 7px; }
 .ai-message.customer { justify-content: flex-end; }
-.ai-message > span { width: 27px; height: 27px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 50%; color: var(--green); background: #dcebe3; }
+.ai-message > .brand-symbol { width: 27px; height: 27px; flex: 0 0 auto; border-radius: 6px; }
 .ai-message > div { max-width: calc(100% - 34px); }
 .ai-message > div > p { width: fit-content; max-width: 88%; margin: 0; padding: 10px 11px; border-radius: 6px; color: #4f5b55; background: white; font-size: 9px; line-height: 1.65; }
 .ai-message.customer > div { display: flex; justify-content: flex-end; }
@@ -1803,7 +1816,7 @@ input[type="checkbox"] { width: 14px; min-width: 14px; height: 14px; padding: 0;
   .login-card { width: 100%; }
   .mobile-brand { min-height: 104px; margin: 0 -20px 22px; padding: 24px 20px; display: flex; align-items: flex-start; background: #e6efea; }
   .mobile-brand .brand { font-size: 17px; }
-  .mobile-brand .brand-mark { width: 36px; height: 36px; }
+  .mobile-brand .brand-symbol { width: 36px; height: 36px; }
   .login-heading { margin-top: 0; }
   .sidebar { transform: translateX(-100%); transition: transform .2s ease; box-shadow: 14px 0 40px rgba(0,0,0,.2); }
   .sidebar.open { transform: translateX(0); }

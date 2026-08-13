@@ -53,3 +53,13 @@ class TooManyRequestsError(AppError):
             message=message,
             status_code=429,
         )
+
+
+class NotFoundError(AppError):
+    def __init__(self, message: str = "请求的资源不存在。") -> None:
+        super().__init__(code="NOT_FOUND", message=message, status_code=404)
+
+
+class ConflictError(AppError):
+    def __init__(self, message: str) -> None:
+        super().__init__(code="CONFLICT", message=message, status_code=409)

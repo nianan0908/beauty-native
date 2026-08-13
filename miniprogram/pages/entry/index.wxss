@@ -3,7 +3,9 @@
 .ambient-one { width: 440rpx; height: 440rpx; top: -180rpx; right: -180rpx; background: #cfe4da; }
 .ambient-two { width: 300rpx; height: 300rpx; bottom: 80rpx; left: -170rpx; background: #ead8ca; }
 .entry-brand { position: relative; display: flex; align-items: center; gap: 18rpx; }
-.brand-mark { width: 72rpx; height: 72rpx; display: flex; align-items: center; justify-content: center; border-radius: 50%; color: white; background: #477661; font-size: 28rpx; font-weight: 700; box-shadow: 0 12rpx 30rpx rgba(51,99,78,.2); }
+.brand-mark { width: 72rpx; height: 72rpx; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 16rpx; color: white; background: #315f4d; font-family: serif; font-size: 34rpx; font-weight: 700; box-shadow: 0 12rpx 30rpx rgba(51,99,78,.2); }
+.brand-mark > text { color: white; font-size: 34rpx; letter-spacing: 0; }
+.brand-mark .brand-dot { width: 11rpx; height: 11rpx; position: absolute; top: 10rpx; right: 10rpx; border-radius: 50%; background: #efb36d; }
 .entry-brand > view:last-child { display: flex; flex-direction: column; gap: 3rpx; color: #26342d; font-size: 30rpx; font-weight: 700; }
 .entry-brand text { color: #779083; font-size: 17rpx; letter-spacing: 2rpx; }
 .entry-copy { margin-top: 118rpx; position: relative; display: flex; flex-direction: column; gap: 22rpx; }

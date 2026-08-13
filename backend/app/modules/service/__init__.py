@@ -1,0 +1,1 @@
+"""Beauty service catalog module."""

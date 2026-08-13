@@ -1,12 +1,17 @@
 from collections.abc import Iterable
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, time
+from decimal import Decimal
 from typing import Any, cast
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.modules.auth.models import Permission, Role, User
 from app.modules.auth.security import hash_password
+from app.modules.schedule.models import StaffSchedule
+from app.modules.service.models import BeautyService
+from app.modules.staff.models import StaffProfile
 from app.modules.store.models import Store
 from app.modules.tenant.models import Plan, Tenant
 
@@ -15,6 +20,8 @@ PERMISSIONS = {
     "tenant:manage": "管理当前商户",
     "store:read": "查看门店",
     "store:manage": "管理门店",
+    "service:read": "查看服务项目",
+    "service:manage": "管理服务项目",
     "staff:read": "查看员工",
     "staff:manage": "管理员工",
     "schedule:read": "查看排班",
@@ -46,6 +53,7 @@ ROLE_PERMISSIONS = {
         "store:read",
         "staff:read",
         "staff:manage",
+        "service:read",
         "schedule:read",
         "schedule:manage",
         "customer:read",
@@ -65,6 +73,7 @@ ROLE_PERMISSIONS = {
     "receptionist": {
         "store:read",
         "staff:read",
+        "service:read",
         "customer:read",
         "customer:manage",
         "appointment:read",
@@ -78,6 +87,7 @@ ROLE_PERMISSIONS = {
     },
     "employee": {
         "store:read",
+        "service:read",
         "schedule:read",
         "customer:read",
         "appointment:read",
@@ -142,6 +152,130 @@ async def add_if_missing(session: AsyncSession, items: Iterable[Any]) -> None:
     await session.flush()
 
 
+async def seed_services(
+    session: AsyncSession, stores: dict[str, Store]
+) -> dict[str, BeautyService]:
+    definitions = [
+        ("S001", "水光焕肤护理", "面部护理", 60, "298", ["MS001", "MS006"]),
+        ("S002", "肩颈舒缓 SPA", "身体舒缓", 75, "368", ["MS001"]),
+        ("S003", "轻奢手部护理", "手部护理", 45, "168", ["MS006"]),
+        ("S004", "深层清洁护理", "面部护理", 60, "258", ["MS001", "MS006"]),
+    ]
+    existing = {
+        item.id: item
+        for item in (
+            await session.scalars(
+                select(BeautyService)
+                .where(BeautyService.tenant_id == "T001")
+                .options(selectinload(BeautyService.stores))
+            )
+        ).all()
+    }
+    for index, (service_id, name, category, duration, price, store_ids) in enumerate(
+        definitions
+    ):
+        service = existing.get(service_id)
+        if service is None:
+            service = BeautyService(id=service_id, tenant_id="T001")
+            session.add(service)
+            existing[service_id] = service
+        service.name = name
+        service.category = category
+        service.duration_minutes = duration
+        service.price = Decimal(price)
+        service.tone = ["service-green", "service-coral", "service-blue", "service-gold"][
+            index
+        ]
+        service.is_online = True
+        service.booking_enabled = True
+        service.stores = [stores[store_id] for store_id in store_ids]
+    await session.flush()
+    return existing
+
+
+async def seed_staff(
+    session: AsyncSession,
+    services: dict[str, BeautyService],
+) -> dict[str, StaffProfile]:
+    definitions = [
+        (
+            "E001", "MS001", "苏禾", "138****5126", "资深美容师", "employee",
+            "2024-06-18", "30000", ["S001", "S002"],
+        ),
+        (
+            "E002", "MS001", "孟然", "137****8062", "SPA 理疗师", "employee",
+            "2025-02-12", "26000", ["S002"],
+        ),
+        (
+            "E003", "MS001", "周琳", "159****2730", "皮肤管理师", "employee",
+            "2024-11-03", "28000", ["S004", "S001"],
+        ),
+        (
+            "E004", "MS001", "陈妍", "136****1985", "云锦路店店长", "manager",
+            "2023-08-20", "50000", ["S001"],
+        ),
+        (
+            "R001", "MS001", "张悦", "135****2068", "门店前台", "receptionist",
+            "2025-09-08", "0", [],
+        ),
+        (
+            "E005", "MS006", "叶晨", "188****6412", "美容师", "employee",
+            "2026-03-15", "18000", ["S003"],
+        ),
+    ]
+    existing = {
+        item.id: item
+        for item in (
+            await session.scalars(
+                select(StaffProfile)
+                .where(StaffProfile.tenant_id == "T001")
+                .options(selectinload(StaffProfile.services))
+            )
+        ).all()
+    }
+    for staff_id, store_id, name, phone, title, role, joined, target, service_ids in definitions:
+        profile = existing.get(staff_id)
+        if profile is None:
+            profile = StaffProfile(id=staff_id, tenant_id="T001")
+            session.add(profile)
+            existing[staff_id] = profile
+        profile.store_id = store_id
+        profile.name = name
+        profile.phone = phone
+        profile.title = title
+        profile.role = role
+        profile.status = "active"
+        profile.joined_at = date.fromisoformat(joined)
+        profile.monthly_target = Decimal(target)
+        profile.services = [services[service_id] for service_id in service_ids]
+    await session.flush()
+    return existing
+
+
+async def seed_schedules(session: AsyncSession, staff: dict[str, StaffProfile]) -> None:
+    definitions = [
+        ("SH001", "E001", date(2026, 8, 14), time(9, 30), time(18, 30), "work"),
+        ("SH002", "E002", date(2026, 8, 14), time(11), time(20), "work"),
+        ("SH003", "E003", date(2026, 8, 14), time(9, 30), time(18, 30), "work"),
+        ("SH004", "E004", date(2026, 8, 14), time(9, 30), time(18, 30), "work"),
+        ("SH005", "E005", date(2026, 8, 14), time(10), time(20, 30), "rest"),
+    ]
+    for schedule_id, staff_id, work_date, start, end, schedule_type in definitions:
+        schedule = await session.get(StaffSchedule, schedule_id)
+        profile = staff[staff_id]
+        if schedule is None:
+            schedule = StaffSchedule(id=schedule_id)
+            session.add(schedule)
+        schedule.tenant_id = profile.tenant_id
+        schedule.store_id = profile.store_id
+        schedule.staff_id = staff_id
+        schedule.work_date = work_date
+        schedule.start_time = start
+        schedule.end_time = end
+        schedule.schedule_type = schedule_type
+    await session.flush()
+
+
 async def seed_demo_data(session: AsyncSession) -> None:
     now = datetime.now(UTC)
     plan = Plan(id="PLAN_PRO", code="pro", name="专业版", active=True)
@@ -182,6 +316,11 @@ async def seed_demo_data(session: AsyncSession) -> None:
     store_by_id = {
         store.id: cast(Store, await session.get(Store, store.id)) for store in stores
     }
+    services = await seed_services(session, store_by_id)
+    staff = await seed_staff(session, services)
+    await seed_schedules(session, staff)
+    store_by_id["MS001"].manager_staff_id = "E004"
+    store_by_id["MS006"].manager_staff_id = "E005"
     password = hash_password("demo123")
     accounts = [
         ("U_PLATFORM", "admin", "平台运营", "platform", None, None, []),

@@ -1,10 +1,10 @@
 <view class="login-page">
-  <view class="assistant-brand"><view>栖</view><text>栖光门店助手</text></view>
+  <view class="assistant-brand"><view><text>美</text><view class="brand-dot"></view></view><text>美天门店助手</text></view>
   <view class="login-copy"><text>MERCHANT ASSISTANT</text><view>欢迎回到门店</view><text>选择身份，进入今天的工作台。</text></view>
   <view class="role-list">
     <button wx:for="{{accounts}}" wx:key="role" data-index="{{index}}" class="role-card {{selected === index ? 'selected' : ''}}" bindtap="selectRole">
       <view class="role-avatar">{{item.initial}}</view>
-      <view><text>{{item.roleName}}</text><strong>{{item.name}}</strong><small>{{item.title}} · {{item.storeName}}</small></view>
+      <view><text>{{item.roleName}}</text><text class="strong">{{item.name}}</text><text class="small">{{item.title}} · {{item.storeName}}</text></view>
       <view class="role-check">{{selected === index ? '✓' : ''}}</view>
     </button>
   </view>

@@ -1,9 +1,9 @@
 <view class="work-page">
-  <view class="work-heading"><text>TODAY'S WORK</text><strong>{{user.role === 'employee' ? '我的服务' : '今日预约'}}</strong><small>{{user.storeName}} · 共 {{appointments.length}} 项</small></view>
+  <view class="work-heading"><text>TODAY'S WORK</text><text class="strong">{{user.role === 'employee' ? '我的服务' : '今日预约'}}</text><text class="small">{{user.storeName}} · 共 {{appointments.length}} 项</text></view>
   <view class="work-list">
     <view wx:for="{{appointments}}" wx:key="id" class="work-card">
-      <view class="work-card-top"><view><strong>{{item.time}}</strong><text>{{item.status}}</text></view><small>{{item.id}}</small></view>
-      <view class="work-customer"><view>{{item.customerInitial}}</view><text><strong>{{item.customer}}</strong><small>{{item.service}}</small><small wx:if="{{user.role !== 'employee'}}">服务员工 · {{item.employee}}</small></text></view>
+      <view class="work-card-top"><view><text class="strong">{{item.time}}</text><text>{{item.status}}</text></view><text class="small">{{item.id}}</text></view>
+      <view class="work-customer"><view>{{item.customerInitial}}</view><view class="work-customer-copy"><text class="strong">{{item.customer}}</text><text class="small">{{item.service}}</text><text class="small" wx:if="{{user.role !== 'employee'}}">服务员工 · {{item.employee}}</text></view></view>
       <view class="standard-stock"><text>标准耗材</text><view wx:if="{{item.service === '肩颈舒缓 SPA'}}"><text>按摩精油 25ml</text><text>洁面棉 2片</text><text>手套 1双</text></view><view wx:else><text>清洁泥膜 20g</text><text>洁面棉 6片</text><text>手套 1双</text></view></view>
       <view class="work-actions"><button wx:if="{{user.role === 'employee'}}" bindtap="openInventory">耗材申请</button><button wx:if="{{user.role === 'employee' && item.status !== '已完成'}}" class="main" data-id="{{item.id}}" bindtap="updateStatus">{{item.status === '已确认' ? '开始服务' : '完成服务'}}</button><button wx:if="{{user.role !== 'employee'}}" class="main">查看详情</button></view>
     </view>

@@ -23,6 +23,11 @@ class Store(Base):
     address: Mapped[str] = mapped_column(String(255), default="")
     phone: Mapped[str] = mapped_column(String(30), default="")
     business_hours: Mapped[str] = mapped_column(String(50), default="09:30 - 21:00")
+    manager_staff_id: Mapped[str | None] = mapped_column(
+        ForeignKey("staff_profiles.id", ondelete="SET NULL", use_alter=True),
+        nullable=True,
+        index=True,
+    )
     status: Mapped[str] = mapped_column(String(20), default="open", index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(

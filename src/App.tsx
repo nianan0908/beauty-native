@@ -39,6 +39,7 @@ import {
 import { demoUsers, roleLabels } from "./data";
 import { AppointmentCenter, CustomerBooking } from "./appointment-views";
 import { AiAdvisor } from "./ai-advisor";
+import { BrandLogo } from "./brand";
 import { CustomerMarketplace } from "./customer-marketplace";
 import { CardCenter, CustomerAssets, CustomerCenter, CustomerNotifications, CustomerProfile, EmployeeCardRedemption, OrderCenter } from "./commerce-views";
 import { BusinessReport, PlanManagement, PlatformLogs, PlatformOverview, SystemAnnouncements, TenantManagement } from "./report-platform-views";
@@ -109,10 +110,7 @@ const menus: Record<Role, Array<{ label: string; icon: IconType }>> = {
 };
 
 function Brand({ compact = false, onClick }: { compact?: boolean; onClick?: () => void }) {
-  const content = <>
-      <span className="brand-mark"><Sparkles size={18} /></span>
-      {!compact && <span>栖光美业</span>}
-    </>;
+  const content = <BrandLogo compact={compact} />;
   return onClick
     ? <button className="brand brand-button" onClick={onClick} aria-label="返回工作台">{content}</button>
     : <div className="brand">{content}</div>;
@@ -152,8 +150,8 @@ function Login() {
       <section className="login-context">
         <Brand />
         <div className="context-copy">
-          <span className="eyebrow">BEAUTY BUSINESS OS</span>
-          <h1>把每一次服务，<br />变成持续经营。</h1>
+          <span className="eyebrow">MEITIAN BEAUTY OS</span>
+          <h1>让美业经营，<br />每天更清楚。</h1>
           <p>预约、会员、交易和团队协作汇聚在一个工作台，让门店每天都清楚下一步。</p>
         </div>
         <div className="context-proof">
@@ -168,7 +166,7 @@ function Login() {
           <div className="login-heading">
             <span className="mobile-brand"><Brand /></span>
             <span className="step-label">演示环境</span>
-            <h2>登录栖光美业</h2>
+            <h2>登录美天美业</h2>
             <p>使用分配的账号进入对应工作空间。</p>
           </div>
 
@@ -447,7 +445,7 @@ function Workspace({ role }: { role: Role }) {
     <div className="app-shell">
       <aside className={`sidebar ${mobileMenu ? "open" : ""}`}>
         <div className="sidebar-top"><Brand onClick={() => { setActive(menus[role][0].label); setMobileMenu(false); }} /><button className="menu-close" onClick={() => setMobileMenu(false)}><X size={20} /></button></div>
-        <div className="workspace-label"><span>{role === "platform" ? "PLATFORM" : "MERCHANT"}</span><strong>{role === "platform" ? "栖光运营中心" : "栖光美学"}</strong></div>
+        <div className="workspace-label"><span>{role === "platform" ? "PLATFORM" : "MERCHANT"}</span><strong>{role === "platform" ? "美天运营中心" : "栖光美学"}</strong></div>
         <nav>{menus[role].map(({ label, icon: Icon }) => <button key={label} className={active === label ? "active" : ""} onClick={() => { setActive(label); setMobileMenu(false); }}><Icon size={18} /><span>{label}</span></button>)}</nav>
         <div className="sidebar-help"><Sparkles size={18} /><strong>产品体验版</strong><span>当前为前端演示环境</span></div>
         <button className="profile" onClick={leaveWorkspace}><span className={`avatar avatar-${role}`}>{user.name.slice(0, 1)}</span><span><strong>{user.name}</strong><small>{roleLabels[role]}</small></span><LogOut size={17} /></button>

@@ -2,10 +2,10 @@
   <view class="ambient ambient-one"></view>
   <view class="ambient ambient-two"></view>
   <view class="entry-brand">
-    <view class="brand-mark">栖</view>
+    <view class="brand-mark"><text>美</text><view class="brand-dot"></view></view>
     <view>
-      <text>QIGUANG BEAUTY OS</text>
-      <view>栖光美业</view>
+      <text>MEITIAN BEAUTY OS</text>
+      <view>美天美业</view>
     </view>
   </view>
 
@@ -36,5 +36,5 @@
     </button>
   </view>
 
-  <view class="entry-foot">栖光美业数字化经营平台</view>
+  <view class="entry-foot">美天美业数字化经营平台</view>
 </view>

@@ -1,4 +1,4 @@
-# 栖光美业 API
+# 美天美业 API
 
 当前目录是 Python/FastAPI 后端。除 PostgreSQL、Redis、Dramatiq、Alembic、统一错误
 和健康检查外，已包含认证、多商户 RBAC、耗材库存和员工次卡核销基础模块。
